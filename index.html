@@ -22,6 +22,15 @@ body{cursor:none}
 #ltitle{position:fixed;left:0;right:0;top:32%;text-align:center;font-size:54px;letter-spacing:0.55em;color:#f0e0a8;opacity:0;transition:opacity 1.4s;pointer-events:none;font-weight:normal;z-index:8;text-shadow:0 0 24px rgba(180,140,40,0.7),0 0 3px #000}
 #ltitle.show{opacity:1}
 #ltitle.pools{color:#cfe8f0;text-shadow:0 0 24px rgba(100,180,210,0.7),0 0 3px #000}
+#cmdbar{position:fixed;left:12%;right:12%;bottom:18%;background:rgba(6,4,0,0.92);border:1px solid #6a5018;padding:9px 14px;font-family:Consolas,monospace;color:#f0d878;z-index:9;display:none;align-items:center;letter-spacing:0.04em;font-size:15px;text-shadow:0 0 4px #000;box-shadow:0 0 24px rgba(180,140,40,0.18),inset 0 0 12px rgba(0,0,0,0.6)}
+#cmdbar.show{display:flex;cursor:text}
+#cmdbar .cp{color:#f4d472;margin-right:6px;opacity:0.85}
+#cmdbar input{flex:1;background:transparent;border:none;outline:none;color:#f4e6a8;font:inherit;letter-spacing:inherit;text-shadow:inherit;caret-color:#f4d472}
+#cmdres{position:fixed;left:12%;right:12%;bottom:27%;font-family:Consolas,monospace;font-size:12px;letter-spacing:0.04em;line-height:1.55;opacity:0;transition:opacity 0.4s;pointer-events:none;text-shadow:0 0 4px #000,0 1px 2px #000;z-index:9;max-height:240px;overflow:hidden;color:#aa9540}
+#cmdres.show{opacity:0.95}
+#cmdres .ok{color:#9bd070}
+#cmdres .err{color:#d05050}
+#cmdres .key{color:#f4d472}
 #start{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,#1a1408 0%,#000 80%);color:#e8d27a;z-index:50;cursor:pointer;text-align:center;padding:20px;transition:opacity 1.2s}
 #start.gone{opacity:0;pointer-events:none}
 #start h1{font-size:38px;letter-spacing:0.45em;margin:0 0 22px;font-weight:normal;color:#f0d878;text-shadow:0 0 14px rgba(160,120,30,0.45),0 0 2px #000;animation:flk 7s infinite}
@@ -40,9 +49,11 @@ body{cursor:none}
 <div id="scan"></div>
 <div id="chr"></div>
 <div id="sub"></div>
-<div id="hint">WASD / ARROWS &middot; MOUSE LOOK &middot; F flashlight &middot; ESC release</div>
+<div id="hint">WASD / ARROWS &middot; MOUSE LOOK &middot; F flashlight &middot; / console &middot; ESC release</div>
 <div id="inv">ITEMS <span class="it" id="iA">[ ] Almond Water</span><span class="it" id="iB">[ ] Battery</span><span class="it" id="iC">[ ] Key</span></div>
 <div id="ltitle"></div>
+<div id="cmdres"></div>
+<div id="cmdbar"><span class="cp">&gt;</span><input id="cmd" type="text" autocomplete="off" spellcheck="false" maxlength="80" /></div>
 <div id="start">
   <h1>THE BACKROOMS</h1>
   <p>You shouldn't be here.<br>The hum is louder than you remember.<br>The carpet is always damp.</p>
@@ -65,6 +76,9 @@ const iAEl=document.getElementById('iA');
 const iBEl=document.getElementById('iB');
 const iCEl=document.getElementById('iC');
 const ltitleEl=document.getElementById('ltitle');
+const cmdbarEl=document.getElementById('cmdbar');
+const cmdEl=document.getElementById('cmd');
+const cmdresEl=document.getElementById('cmdres');
 const grainC=document.getElementById('grain');
 const grainCtx=grainC.getContext('2d');
 function resize(){grainC.width=Math.min(window.innerWidth,1600);grainC.height=Math.min(window.innerHeight,1000)}
@@ -216,9 +230,9 @@ const TEX_PC=makePoolCeiling();
 // ============ Levels ============
 const LEVELS=[
   { name:'BACKROOMS', wallTex:TEX_W, floorTex:TEX_F, ceilTex:TEX_C,
-    ambR:0.08, ambG:0.06, ambB:0.025,
-    fogR:10, fogG:7, fogB:3, fogRate:0.045,
-    lightR:1.0, lightG:0.93, lightB:0.58, lightI:7.0, lightProb:0.42,
+    ambR:0.035, ambG:0.027, ambB:0.011,
+    fogR:5, fogG:4, fogB:1, fogRate:0.058,
+    lightR:1.0, lightG:0.93, lightB:0.58, lightI:8.0, lightProb:0.38,
     ripple:false, moveScale:1.0 },
   { name:'THE POOLS', wallTex:TEX_PW, floorTex:TEX_PF, ceilTex:TEX_PC,
     ambR:0.06, ambG:0.09, ambB:0.10,
@@ -909,6 +923,188 @@ function drawDoorSprite(dirX,dirY,planeX,planeY,halfH){
   }
 }
 
+// ============ Command Panel ============
+let cmdOpen=false;
+let muted=false;
+let noclip=false;
+let speedMult=1.0;
+let _cmdresT=0;
+function openCmd(){
+  if(cmdOpen) return;
+  cmdOpen=true;
+  cmdbarEl.classList.add('show');
+  cmdEl.value='';
+  if(document.pointerLockElement) document.exitPointerLock?.();
+  setTimeout(()=>cmdEl.focus(), 30);
+  // halt held inputs
+  for(const k in keys) keys[k]=0;
+}
+function closeCmd(){
+  if(!cmdOpen) return;
+  cmdOpen=false;
+  cmdbarEl.classList.remove('show');
+  cmdEl.blur();
+  if(started) view.requestPointerLock?.();
+}
+function cmdSay(html, kind){
+  cmdresEl.innerHTML = '<span class="'+(kind||'ok')+'">'+html+'</span>';
+  cmdresEl.classList.add('show');
+  clearTimeout(_cmdresT);
+  _cmdresT = setTimeout(()=>cmdresEl.classList.remove('show'), 5500);
+}
+function teleportLevel(n){
+  if(n!==0 && n!==1) return;
+  LEVEL=n; LV=LEVELS[n];
+  if(n===0){ player.x=1.5; player.y=1.5; }
+  else { player.x=8.5; player.y=8.5; }
+  player.angle=0; player.bobT=0; player.bobOff=0;
+  chunks.clear(); chunkOrder.length=0;
+  activeLights.length=0;
+  _wccx=1e9; _wccy=1e9;
+  entity.active=false;
+  const pcx=Math.floor(player.x/CHUNK), pcy=Math.floor(player.y/CHUNK);
+  for(let dx=-4;dx<=4;dx++) for(let dy=-4;dy<=4;dy++) getChunk(pcx+dx,pcy+dy);
+  if(isWall(Math.floor(player.x), Math.floor(player.y))){
+    if(n===0){ player.x=1.5; player.y=1.5; }
+    else { player.x=8.5; player.y=8.5; }
+  }
+  levelTime=0;
+  saveState();
+  updateInvHUD();
+  ltitleEl.className = n===1 ? 'pools show' : 'show';
+  ltitleEl.textContent = n===1 ? 'THE POOLS' : 'BACKROOMS';
+  setTimeout(()=>{ltitleEl.className=n===1?'pools':''}, 3200);
+}
+const ITEM_ALIAS={water:0,almond:0,a:0,'1':0, battery:1,bat:1,b:1,'2':1, key:2,brass:2,c:2,'3':2};
+function execCmd(raw){
+  const s=(raw||'').trim();
+  if(!s){ closeCmd(); return; }
+  const parts=s.split(/\s+/);
+  const cmd=parts[0].toLowerCase().replace(/^\//,'');
+  const arg=parts[1];
+  switch(cmd){
+    case 'help': case 'h': case '?':
+      cmdSay([
+        '<span class="key">/tp 0|1</span>      teleport to level',
+        '<span class="key">/give X</span>      X = water|battery|key|all',
+        '<span class="key">/door</span>        force-unlock + open exit',
+        '<span class="key">/mute /unmute</span>  toggle audio',
+        '<span class="key">/flashlight</span>   toggle flashlight (or F)',
+        '<span class="key">/noclip</span>      toggle wall collision',
+        '<span class="key">/speed N</span>     set move speed (0.1–10, default 1)',
+        '<span class="key">/light N</span>     set ambient (0.0–1.0)',
+        '<span class="key">/fog N</span>       set fog rate (0.01–0.2)',
+        '<span class="key">/where</span>       print position',
+        '<span class="key">/reset</span>       wipe save and reload',
+        '<span class="key">/help</span>        this list'
+      ].join('<br>'));
+      break;
+    case 'tp': case 'level': case 'l': {
+      const n=parseInt(arg,10);
+      if(n!==0 && n!==1){ cmdSay('tp: level must be 0 (Backrooms) or 1 (Pools)','err'); break; }
+      teleportLevel(n);
+      cmdSay('teleported to '+LEVELS[n].name);
+      break;
+    }
+    case 'give': case 'g': {
+      if(!arg){ cmdSay('give: water | battery | key | all','err'); break; }
+      const a=arg.toLowerCase();
+      if(a==='all'||a==='*'){
+        inventory.a=true; inventory.b=true; inventory.c=true;
+        items[0].found=true; items[1].found=true; items[2].found=true;
+        updateInvHUD(); saveState();
+        cmdSay('inventory full (3/3)');
+        break;
+      }
+      const idx=ITEM_ALIAS[a];
+      if(idx===undefined){ cmdSay('give: unknown item "'+a+'"','err'); break; }
+      const id=['a','b','c'][idx];
+      inventory[id]=true; items[idx].found=true;
+      updateInvHUD(); saveState();
+      cmdSay('added: '+items[idx].name);
+      break;
+    }
+    case 'door': case 'unlock': {
+      inventory.a=true; inventory.b=true; inventory.c=true;
+      for(const it of items) it.found=true;
+      updateInvHUD(); saveState();
+      if(LEVEL===0 && !doorUsed){ startTransition(); cmdSay('door opening...'); }
+      else cmdSay('inventory unlocked');
+      break;
+    }
+    case 'mute': {
+      muted=true;
+      if(typeof master!=='undefined' && master) master.gain.value=0;
+      cmdSay('audio muted');
+      break;
+    }
+    case 'unmute': case 'sound': {
+      muted=false;
+      if(typeof master!=='undefined' && master) master.gain.value=0.55;
+      cmdSay('audio on');
+      break;
+    }
+    case 'flashlight': case 'fl': case 'f': {
+      flashlight=!flashlight;
+      cmdSay('flashlight: '+(flashlight?'on':'off'));
+      break;
+    }
+    case 'noclip': case 'clip': {
+      noclip=!noclip;
+      cmdSay('noclip: '+(noclip?'on (walk through walls)':'off'));
+      break;
+    }
+    case 'speed': {
+      const n=parseFloat(arg);
+      if(!isFinite(n)||n<=0||n>20){ cmdSay('speed: 0.1–20','err'); break; }
+      speedMult=n;
+      cmdSay('speed: '+n+'x');
+      break;
+    }
+    case 'light': case 'ambient': {
+      const n=parseFloat(arg);
+      if(!isFinite(n)||n<0||n>1){ cmdSay('light: 0.0–1.0','err'); break; }
+      LV.ambR=n; LV.ambG=n*0.78; LV.ambB=n*0.32;
+      cmdSay('ambient: '+n);
+      break;
+    }
+    case 'fog': {
+      const n=parseFloat(arg);
+      if(!isFinite(n)||n<0.005||n>0.3){ cmdSay('fog: 0.005–0.3','err'); break; }
+      LV.fogRate=n;
+      cmdSay('fog rate: '+n);
+      break;
+    }
+    case 'where': case 'pos': case 'whereami': {
+      cmdSay('level='+LEVELS[LEVEL].name+'  x='+player.x.toFixed(2)+'  y='+player.y.toFixed(2)+'  angle='+player.angle.toFixed(2));
+      break;
+    }
+    case 'reset': case 'wipe': {
+      try{localStorage.removeItem('br_save')}catch(e){}
+      cmdSay('save wiped — reloading...');
+      setTimeout(()=>location.reload(), 500);
+      break;
+    }
+    default:
+      cmdSay('unknown command: '+cmd+'   try /help','err');
+  }
+}
+cmdEl.addEventListener('keydown', e=>{
+  if(e.key==='Enter'){
+    e.preventDefault();
+    const v=cmdEl.value;
+    cmdEl.value='';
+    closeCmd();
+    execCmd(v);
+  } else if(e.key==='Escape'){
+    e.preventDefault();
+    cmdEl.value='';
+    closeCmd();
+  }
+  e.stopPropagation();
+});
+cmdEl.addEventListener('blur', ()=>{ if(cmdOpen) closeCmd(); });
+
 // ============ Audio ============
 let ac=null, master, whine, whineGain, buzzGain;
 let noiseBuffer=null, audioReady=false;
@@ -924,7 +1120,7 @@ function initAudio(){
   audioReady=true;
   try{ac=new (window.AudioContext||window.webkitAudioContext)()}catch(e){return}
   noiseBuffer=makeNoiseBuffer();
-  master=ac.createGain(); master.gain.value=0.55; master.connect(ac.destination);
+  master=ac.createGain(); master.gain.value=muted?0:0.55; master.connect(ac.destination);
   // Low hum
   const o1=ac.createOscillator(); o1.type='sine'; o1.frequency.value=58;
   const o2=ac.createOscillator(); o2.type='sine'; o2.frequency.value=116;
@@ -1076,10 +1272,16 @@ function distantThump(){
 const keys={};
 let mouseDX=0;
 addEventListener('keydown',e=>{
+  if(e.code==='Slash' && !cmdOpen && started){
+    e.preventDefault();
+    openCmd();
+    return;
+  }
+  if(cmdOpen) return;
   keys[e.code]=1;
   if(e.code==='KeyF'){flashlight=!flashlight; tone(flashlight?900:300,0.06,0.04,'square')}
 });
-addEventListener('keyup',e=>{keys[e.code]=0});
+addEventListener('keyup',e=>{ if(cmdOpen) return; keys[e.code]=0 });
 let pointerLocked=false;
 let started=false;
 function tryLock(){
@@ -1365,6 +1567,7 @@ function tickLightsAndEvents(now){
 
 // ============ Movement ============
 function tryMove(nx,ny){
+  if(noclip){ player.x=nx; player.y=ny; return; }
   const r=0.22;
   if(!isWall(Math.floor(nx+r),Math.floor(player.y)) && !isWall(Math.floor(nx-r),Math.floor(player.y))){
     player.x=nx;
@@ -1394,7 +1597,7 @@ function updateMovement(dt,now){
   if(lA) player.angle -= 1.7*dt;
   if(rA) player.angle += 1.7*dt;
   const len=Math.sqrt(mx*mx+my*my);
-  const speed=2.6*LV.moveScale;
+  const speed=2.6*LV.moveScale*speedMult;
   const moving=len>0.01;
   if(moving){
     mx/=len; my/=len;
