@@ -1,0 +1,1045 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Backrooms</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:#000;overflow:hidden;height:100%;width:100%;color:#e8d27a;font-family:"Courier New",ui-monospace,monospace}
+body{cursor:none}
+#view{image-rendering:pixelated;image-rendering:crisp-edges;width:100vw;height:100vh;display:block;background:#1a1408;filter:contrast(1.05) saturate(1.08)}
+#vig{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 32%,rgba(15,10,2,0.48) 70%,rgba(0,0,0,0.92) 100%);mix-blend-mode:multiply;z-index:3}
+#scan{position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(to bottom,rgba(0,0,0,0) 0,rgba(0,0,0,0) 2px,rgba(0,0,0,0.22) 3px,rgba(0,0,0,0) 4px);mix-blend-mode:multiply;opacity:0.55;z-index:4}
+#grain{position:fixed;inset:0;pointer-events:none;opacity:0.09;mix-blend-mode:overlay;z-index:5;width:100vw;height:100vh}
+#chr{position:fixed;inset:0;pointer-events:none;z-index:6;mix-blend-mode:screen;opacity:0.20;background:radial-gradient(circle at 28% 50%,rgba(255,0,40,0.07),transparent 50%),radial-gradient(circle at 72% 50%,rgba(0,180,255,0.07),transparent 50%)}
+#sub{position:fixed;left:8%;right:8%;bottom:9%;text-align:center;font-size:15px;color:#dec875;opacity:0;transition:opacity 0.7s;text-shadow:0 0 4px #000,0 1px 2px rgba(0,0,0,0.9);letter-spacing:0.06em;pointer-events:none;font-style:italic;z-index:7}
+#sub.show{opacity:0.88}
+#hint{position:fixed;left:12px;top:10px;font-size:11px;color:#988436;opacity:0.45;letter-spacing:0.05em;pointer-events:none;text-shadow:0 0 3px #000;z-index:7}
+#start{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,#1a1408 0%,#000 80%);color:#e8d27a;z-index:50;cursor:pointer;text-align:center;padding:20px;transition:opacity 1.2s}
+#start.gone{opacity:0;pointer-events:none}
+#start h1{font-size:38px;letter-spacing:0.45em;margin:0 0 22px;font-weight:normal;color:#f0d878;text-shadow:0 0 14px rgba(160,120,30,0.45),0 0 2px #000;animation:flk 7s infinite}
+#start p{font-size:14px;line-height:2.1;color:#aa9540;letter-spacing:0.12em;max-width:520px;opacity:0.85}
+#start small{display:block;margin-top:38px;font-size:11px;color:#7a6028;letter-spacing:0.35em;opacity:0.7;animation:pls 2.4s infinite}
+@keyframes flk{0%,93%,100%{opacity:1}94%{opacity:0.4}95%{opacity:0.9}96%{opacity:0.5}97%{opacity:1}}
+@keyframes pls{0%,100%{opacity:0.4}50%{opacity:0.9}}
+.cr{position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 140px 32px rgba(35,24,0,0.78);mix-blend-mode:multiply;z-index:2}
+</style>
+</head>
+<body>
+<canvas id="view" width="480" height="270"></canvas>
+<div class="cr"></div>
+<div id="vig"></div>
+<canvas id="grain"></canvas>
+<div id="scan"></div>
+<div id="chr"></div>
+<div id="sub"></div>
+<div id="hint">WASD / ARROWS &middot; MOUSE LOOK &middot; F flashlight &middot; ESC release</div>
+<div id="start">
+  <h1>THE BACKROOMS</h1>
+  <p>You shouldn't be here.<br>The hum is louder than you remember.<br>The carpet is always damp.</p>
+  <small>CLICK TO ENTER</small>
+</div>
+<script>
+"use strict";
+(()=>{
+// ============ Setup ============
+const view=document.getElementById('view');
+const ctx=view.getContext('2d',{alpha:false});
+const W=480,H=270;
+view.width=W;view.height=H;
+const buf=ctx.createImageData(W,H);
+const buf32=new Uint32Array(buf.data.buffer);
+const buf8=new Uint8ClampedArray(buf.data.buffer);
+const subEl=document.getElementById('sub');
+const startEl=document.getElementById('start');
+const grainC=document.getElementById('grain');
+const grainCtx=grainC.getContext('2d');
+function resize(){grainC.width=Math.min(window.innerWidth,1600);grainC.height=Math.min(window.innerHeight,1000)}
+addEventListener('resize',resize);resize();
+
+// ============ RNG / Noise ============
+function h2(x,y,s){let h=(x*374761393+y*668265263+(s|0)*2654435761)|0;h=Math.imul(h^(h>>>13),1274126177);return((h^(h>>>16))>>>0)/4294967296}
+function vn(x,y,s){
+  const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi;
+  const a=h2(xi,yi,s),b=h2(xi+1,yi,s),c=h2(xi,yi+1,s),d=h2(xi+1,yi+1,s);
+  const u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);
+  return a*(1-u)*(1-v)+b*u*(1-v)+c*(1-u)*v+d*u*v;
+}
+function fbm(x,y,s){let r=0,a=0.5,f=1;for(let i=0;i<4;i++){r+=a*vn(x*f,y*f,s+i*17);f*=2;a*=0.5}return r}
+const SEED=1729;
+
+// ============ Textures ============
+const TS=64,TM=TS-1;
+function newTex(){return new Uint32Array(TS*TS)}
+function clamp(v,a,b){return v<a?a:v>b?b:v}
+function rgb(r,g,b){r=clamp(r|0,0,255);g=clamp(g|0,0,255);b=clamp(b|0,0,255);return 0xff000000|(b<<16)|(g<<8)|r}
+
+function makeWallpaper(){
+  const t=newTex();
+  for(let y=0;y<TS;y++)for(let x=0;x<TS;x++){
+    let r=188,g=158,b=72;
+    const n1=(vn(x*0.15,y*0.15,11)-0.5)*28;
+    const n2=(vn(x*0.55,y*0.55,21)-0.5)*16;
+    r+=n1+n2;g+=n1+n2;b+=(n1+n2)*0.4;
+    const sd=Math.min(x%16,15-(x%16));
+    if(sd<1){r-=42;g-=36;b-=22}
+    const st=fbm(x*0.04,y*0.04,5);
+    if(st>0.58){const k=(st-0.58)*4.5;r-=k*55;g-=k*48;b-=k*26}
+    if(st>0.72){r-=18;g-=15;b-=6}
+    const mp=fbm(x*0.18,y*0.18,33);
+    if(mp>0.74){r-=28;g-=20;b-=8}
+    if(sd<2&&(y%16<3)){r+=8;g+=4;b-=4}
+    const tr=h2(x,y,7);
+    if(tr>0.992){r-=40;g-=32;b-=14}
+    t[y*TS+x]=rgb(r,g,b);
+  }
+  return t;
+}
+function makeCarpet(){
+  const t=newTex();
+  for(let y=0;y<TS;y++)for(let x=0;x<TS;x++){
+    let r=68,g=50,b=20;
+    const n=(vn(x*0.65,y*0.65,9)-0.5)*42;
+    const n2=(vn(x*1.6,y*1.6,17)-0.5)*22;
+    r+=n+n2;g+=(n+n2)*0.72;b+=(n+n2)*0.42;
+    const w=fbm(x*0.05,y*0.05,3);
+    if(w>0.6){const k=(w-0.6)*5;r-=22*k;g-=18*k;b-=8*k}
+    const d=fbm(x*0.11,y*0.11,7);
+    if(d<0.32){r-=12;g-=9;b-=4}
+    if((x*3+y*7)%5===0){r+=5;g+=4;b+=1}
+    if(h2(x,y,11)>0.97){r-=18;g-=14;b-=6}
+    t[y*TS+x]=rgb(r,g,b);
+  }
+  return t;
+}
+function makeCeiling(){
+  const t=newTex();
+  for(let y=0;y<TS;y++)for(let x=0;x<TS;x++){
+    let r=208,g=188,b=126;
+    const n=(vn(x*0.9,y*0.9,13)-0.5)*20;
+    r+=n;g+=n;b+=n*0.7;
+    const gx=Math.min(x%32,31-(x%32));
+    const gy=Math.min(y%32,31-(y%32));
+    if(gx<1||gy<1){r-=75;g-=65;b-=38}
+    if(h2(x,y,7)>0.83){r-=15;g-=12;b-=5}
+    const st=fbm(x*0.045,y*0.045,29);
+    if(st>0.66){const k=(st-0.66)*5;r-=k*40;g-=k*34;b-=k*16}
+    if(h2(x,y,29)>0.991){r-=60;g-=50;b-=22}
+    t[y*TS+x]=rgb(r,g,b);
+  }
+  return t;
+}
+const TEX_W=makeWallpaper();
+const TEX_F=makeCarpet();
+const TEX_C=makeCeiling();
+
+// ============ Player ============
+const player={x:1.5,y:1.5,angle:0,bobT:0,bobOff:0};
+try{const s=JSON.parse(localStorage.getItem('br_save')||'null');if(s&&isFinite(s.x)){player.x=s.x;player.y=s.y;player.angle=s.a}}catch(e){}
+function saveState(){try{localStorage.setItem('br_save',JSON.stringify({x:player.x,y:player.y,a:player.angle}))}catch(e){}}
+setInterval(saveState,3500);
+
+// ============ World / chunks ============
+const CHUNK=16;
+const chunks=new Map();
+const chunkOrder=[];
+const MAX_CHUNKS=200;
+function ckey(cx,cy){return cx+","+cy}
+const CELL=5;
+function isMazeWall(gx,gy){
+  const cx=Math.floor(gx/CELL), cy=Math.floor(gy/CELL);
+  const lx=gx-cx*CELL, ly=gy-cy*CELL;
+  const openness=fbm(cx*0.11, cy*0.11, SEED+201);
+  if(lx===0){
+    if(openness>0.65 && h2(cx*2+1, cy, SEED+101)>0.32) return 0;
+    const door=1+Math.floor(h2(cx*2+1, cy, SEED+3)*(CELL-1));
+    if(ly===door) return 0;
+    if(h2(cx*2+1, cy, SEED+19)>0.82){
+      const d2=1+Math.floor(h2(cx*2+1, cy, SEED+23)*(CELL-1));
+      if(ly===d2) return 0;
+    }
+    return 1;
+  }
+  if(ly===0){
+    if(openness>0.65 && h2(cx, cy*2+1, SEED+107)>0.32) return 0;
+    const door=1+Math.floor(h2(cx, cy*2+1, SEED+7)*(CELL-1));
+    if(lx===door) return 0;
+    if(h2(cx, cy*2+1, SEED+29)>0.82){
+      const d2=1+Math.floor(h2(cx, cy*2+1, SEED+31)*(CELL-1));
+      if(lx===d2) return 0;
+    }
+    return 1;
+  }
+  if(h2(gx, gy, SEED+1023)>0.987) return 1;
+  return 0;
+}
+function genChunk(cx,cy){
+  const tiles=new Uint8Array(CHUNK*CHUNK);
+  const lights=[];
+  for(let ly=0;ly<CHUNK;ly++)for(let lx=0;lx<CHUNK;lx++){
+    const gx=cx*CHUNK+lx, gy=cy*CHUNK+ly;
+    tiles[ly*CHUNK+lx]=isMazeWall(gx,gy);
+  }
+  if(cx===0&&cy===0){
+    for(let dy=1;dy<5;dy++)for(let dx=1;dx<5;dx++){
+      if(dx<CHUNK&&dy<CHUNK) tiles[dy*CHUNK+dx]=0;
+    }
+  }
+  for(let ly=0;ly<CHUNK;ly++)for(let lx=0;lx<CHUNK;lx++){
+    if(tiles[ly*CHUNK+lx]!==0) continue;
+    const gx=cx*CHUNK+lx, gy=cy*CHUNK+ly;
+    const mlx=((gx%CELL)+CELL)%CELL;
+    const mly=((gy%CELL)+CELL)%CELL;
+    const cellCx=Math.floor(gx/CELL), cellCy=Math.floor(gy/CELL);
+    const isCenter=(mlx===((CELL/2)|0) && mly===((CELL/2)|0));
+    if(isCenter && h2(cellCx, cellCy, SEED+57)<0.78){
+      lights.push({
+        x:gx+0.5, y:gy+0.5,
+        r:1.0, g:0.93, b:0.58,
+        intensity:4.5,
+        phase:h2(gx,gy,SEED+13)*100,
+        on:1, flick:1,
+        _flickering:false, _flickerEnd:0, _watchRestore:false,
+        seed:(gx*131+gy*7919)|0
+      });
+    }
+  }
+  return {tiles,lights,touched:performance.now()};
+}
+function getChunk(cx,cy){
+  const k=ckey(cx,cy);
+  let c=chunks.get(k);
+  if(!c){
+    c=genChunk(cx,cy);
+    chunks.set(k,c);
+    chunkOrder.push(k);
+    if(chunks.size>MAX_CHUNKS){
+      const pcx=Math.floor(player.x/CHUNK),pcy=Math.floor(player.y/CHUNK);
+      for(let i=0;i<chunkOrder.length;i++){
+        const ok=chunkOrder[i];
+        const p=ok.split(',');
+        const ocx=+p[0],ocy=+p[1];
+        if(Math.abs(ocx-pcx)>3||Math.abs(ocy-pcy)>3){
+          chunks.delete(ok);chunkOrder.splice(i,1);
+          break;
+        }
+      }
+    }
+  }
+  c.touched=performance.now();
+  return c;
+}
+let _wcc=null,_wccx=1e9,_wccy=1e9;
+function isWall(mx,my){
+  const cx=Math.floor(mx/CHUNK), cy=Math.floor(my/CHUNK);
+  if(cx!==_wccx||cy!==_wccy){_wcc=getChunk(cx,cy);_wccx=cx;_wccy=cy}
+  const lx=mx-cx*CHUNK, ly=my-cy*CHUNK;
+  return _wcc.tiles[ly*CHUNK+lx]===1;
+}
+// Make sure player isn't stuck inside a wall from old save
+if(isWall(Math.floor(player.x), Math.floor(player.y))){
+  player.x=1.5; player.y=1.5; player.angle=0;
+}
+// Pregen chunks around spawn
+{
+  const pcx=Math.floor(player.x/CHUNK), pcy=Math.floor(player.y/CHUNK);
+  for(let dx=-4;dx<=4;dx++) for(let dy=-4;dy<=4;dy++) getChunk(pcx+dx,pcy+dy);
+}
+
+// ============ Lighting ============
+const activeLights=[];
+function gatherLights(){
+  activeLights.length=0;
+  const pcx=Math.floor(player.x/CHUNK),pcy=Math.floor(player.y/CHUNK);
+  for(let dx=-4;dx<=4;dx++)for(let dy=-4;dy<=4;dy++){
+    const c=getChunk(pcx+dx,pcy+dy);
+    if(dx<-2||dx>2||dy<-2||dy>2) continue;
+    for(let i=0;i<c.lights.length;i++){
+      const L=c.lights[i];
+      const ddx=L.x-player.x,ddy=L.y-player.y;
+      if(ddx*ddx+ddy*ddy<120) activeLights.push(L);
+    }
+  }
+}
+const FOG_R2=92,FOG_G2=70,FOG_B2=30;
+const AMB_R=0.95,AMB_G=0.80,AMB_B=0.38;
+let flashlight=true;
+let _flDirX=1,_flDirY=0;
+function sampleLightAt(wx,wy){
+  let r=AMB_R,g=AMB_G,b=AMB_B;
+  const N=activeLights.length;
+  for(let i=0;i<N;i++){
+    const L=activeLights[i];
+    if(!L.on) continue;
+    const dx=wx-L.x,dy=wy-L.y;
+    const d2=dx*dx+dy*dy+0.45;
+    const att=(L.intensity*L.flick)/d2;
+    r+=att*L.r;g+=att*L.g;b+=att*L.b;
+  }
+  if(flashlight){
+    const dx=wx-player.x,dy=wy-player.y;
+    const d2=dx*dx+dy*dy;
+    if(d2<196){
+      const d=Math.sqrt(d2);
+      if(d>0.05){
+        const dot=(dx*_flDirX+dy*_flDirY)/d;
+        if(dot>0.55){
+          const cone=(dot-0.55)*1.818;
+          const att=10/(d2+0.5)*cone;
+          r+=att;g+=att*0.94;b+=att*0.66;
+        }
+      }
+    }
+  }
+  return r<<0|0;
+}
+let _lcR=0,_lcG=0,_lcB=0;
+function sample3(wx,wy){
+  let r=AMB_R,g=AMB_G,b=AMB_B;
+  const N=activeLights.length;
+  for(let i=0;i<N;i++){
+    const L=activeLights[i];
+    if(!L.on) continue;
+    const dx=wx-L.x,dy=wy-L.y;
+    const d2=dx*dx+dy*dy+0.45;
+    const att=(L.intensity*L.flick)/d2;
+    r+=att*L.r;g+=att*L.g;b+=att*L.b;
+  }
+  if(flashlight){
+    const dx=wx-player.x,dy=wy-player.y;
+    const d2=dx*dx+dy*dy;
+    if(d2<196){
+      const d=Math.sqrt(d2);
+      if(d>0.05){
+        const dot=(dx*_flDirX+dy*_flDirY)/d;
+        if(dot>0.55){
+          const cone=(dot-0.55)*1.818;
+          const att=10/(d2+0.5)*cone;
+          r+=att;g+=att*0.94;b+=att*0.66;
+        }
+      }
+    }
+  }
+  _lcR=r;_lcG=g;_lcB=b;
+}
+
+// ============ Raycaster ============
+const zBuf=new Float32Array(W);
+const _lightCols=new Float32Array(((W>>3)+2)*3);
+function castFrame(){
+  const dirX=Math.cos(player.angle),dirY=Math.sin(player.angle);
+  _flDirX=dirX;_flDirY=dirY;
+  const planeLen=0.66;
+  const planeX=-dirY*planeLen,planeY=dirX*planeLen;
+  const halfH=((H>>1)+player.bobOff)|0;
+  const camZ=0.5*H;
+
+  // ---- Floor + ceiling rows ----
+  const lightCols=_lightCols;
+  for(let y=0;y<H;y++){
+    let p=y-halfH; const isFloor=p>0; if(!isFloor) p=-p;
+    if(p<1){
+      const c=0xff000000|(FOG_B2<<16)|(FOG_G2<<8)|FOG_R2;
+      const off=y*W;
+      for(let x=0;x<W;x++) buf32[off+x]=c;
+      continue;
+    }
+    const rowDist=camZ/p;
+    if(rowDist>120){
+      const c=0xff000000|(FOG_B2<<16)|(FOG_G2<<8)|FOG_R2;
+      const off=y*W;
+      for(let x=0;x<W;x++) buf32[off+x]=c;
+      continue;
+    }
+    const rayDX0=dirX-planeX,rayDY0=dirY-planeY;
+    const rayDX1=dirX+planeX,rayDY1=dirY+planeY;
+    const stepX=rowDist*(rayDX1-rayDX0)/W;
+    const stepY=rowDist*(rayDY1-rayDY0)/W;
+    let fx=player.x+rowDist*rayDX0;
+    let fy=player.y+rowDist*rayDY0;
+    const tex=isFloor?TEX_F:TEX_C;
+    const rowOff=y*W;
+    const STRIDE=16;
+    const nSamples=(W>>4)+1;
+    let sfx=fx,sfy=fy;
+    for(let s=0;s<=nSamples;s++){
+      sample3(sfx,sfy);
+      lightCols[s*3]=_lcR;lightCols[s*3+1]=_lcG;lightCols[s*3+2]=_lcB;
+      sfx+=stepX*STRIDE;sfy+=stepY*STRIDE;
+    }
+    const fog=1-Math.exp(-rowDist*0.018);
+    const ifog=1-fog;
+    const fogRf=FOG_R2*fog, fogGf=FOG_G2*fog, fogBf=FOG_B2*fog;
+    let si=0;
+    let cR=lightCols[0],cG=lightCols[1],cB=lightCols[2];
+    let nR=lightCols[3],nG=lightCols[4],nB=lightCols[5];
+    let dR=(nR-cR)/STRIDE,dG=(nG-cG)/STRIDE,dB=(nB-cB)/STRIDE;
+    let sc=0;
+    for(let x=0;x<W;x++){
+      const tx=((fx*TS)|0)&TM;
+      const ty=((fy*TS)|0)&TM;
+      const c=tex[ty*TS+tx];
+      let r=(c&0xff)*cR;
+      let g=((c>>8)&0xff)*cG;
+      let b=((c>>16)&0xff)*cB;
+      r=r*ifog+fogRf;g=g*ifog+fogGf;b=b*ifog+fogBf;
+      if(r>255)r=255;if(g>255)g=255;if(b>255)b=255;
+      buf32[rowOff+x]=0xff000000|((b|0)<<16)|((g|0)<<8)|(r|0);
+      fx+=stepX;fy+=stepY;
+      cR+=dR;cG+=dG;cB+=dB;
+      sc++;
+      if(sc===STRIDE){
+        sc=0;si++;
+        cR=lightCols[si*3];cG=lightCols[si*3+1];cB=lightCols[si*3+2];
+        const ni=si+1;
+        nR=lightCols[ni*3];nG=lightCols[ni*3+1];nB=lightCols[ni*3+2];
+        if(nR===undefined){nR=cR;nG=cG;nB=cB}
+        dR=(nR-cR)/STRIDE;dG=(nG-cG)/STRIDE;dB=(nB-cB)/STRIDE;
+      }
+    }
+  }
+
+  // ---- Walls ----
+  for(let x=0;x<W;x++) zBuf[x]=1e9;
+  for(let x=0;x<W;x++){
+    const camX=2*x/W-1;
+    const rayX=dirX+planeX*camX, rayY=dirY+planeY*camX;
+    let mapX=Math.floor(player.x), mapY=Math.floor(player.y);
+    const deltaX=Math.abs(1/rayX), deltaY=Math.abs(1/rayY);
+    let sideX,sideY,stepX,stepY;
+    if(rayX<0){stepX=-1;sideX=(player.x-mapX)*deltaX}else{stepX=1;sideX=(mapX+1-player.x)*deltaX}
+    if(rayY<0){stepY=-1;sideY=(player.y-mapY)*deltaY}else{stepY=1;sideY=(mapY+1-player.y)*deltaY}
+    let hit=0, side=0, steps=0;
+    while(!hit && steps<200){
+      if(sideX<sideY){sideX+=deltaX;mapX+=stepX;side=0}else{sideY+=deltaY;mapY+=stepY;side=1}
+      if(isWall(mapX,mapY)) hit=1;
+      steps++;
+    }
+    if(!hit) continue;
+    const perp=side===0?(sideX-deltaX):(sideY-deltaY);
+    if(perp<=0.01) continue;
+    zBuf[x]=perp;
+    const lineH=Math.floor(H/perp);
+    let drawStart=(-lineH>>1)+halfH;
+    let drawEnd=(lineH>>1)+halfH;
+    const drawStartO=drawStart, drawEndO=drawEnd;
+    if(drawStart<0) drawStart=0;
+    if(drawEnd>H) drawEnd=H;
+    let wallX = side===0 ? player.y+perp*rayY : player.x+perp*rayX;
+    wallX -= Math.floor(wallX);
+    let texX = (wallX*TS)|0;
+    if(side===0 && rayX>0) texX = TM-texX;
+    if(side===1 && rayY<0) texX = TM-texX;
+    const hitX=player.x+perp*rayX, hitY=player.y+perp*rayY;
+    sample3(hitX,hitY);
+    const sm = side===1 ? 0.82 : 1.0;
+    const lR=_lcR*sm, lG=_lcG*sm, lB=_lcB*sm;
+    const fog=1-Math.exp(-perp*0.018);
+    const ifog=1-fog;
+    const fogRf=FOG_R2*fog, fogGf=FOG_G2*fog, fogBf=FOG_B2*fog;
+    const step=TS/lineH;
+    let texPos=(drawStart-drawStartO)*step;
+    for(let y=drawStart;y<drawEnd;y++){
+      const ty=((texPos|0)&TM);
+      texPos+=step;
+      const c=TEX_W[ty*TS+texX];
+      let r=(c&0xff)*lR, g=((c>>8)&0xff)*lG, b=((c>>16)&0xff)*lB;
+      r=r*ifog+fogRf;g=g*ifog+fogGf;b=b*ifog+fogBf;
+      if(r>255)r=255;if(g>255)g=255;if(b>255)b=255;
+      buf32[y*W+x]=0xff000000|((b|0)<<16)|((g|0)<<8)|(r|0);
+    }
+  }
+
+  // ---- Entity silhouette ----
+  drawEntity(dirX,dirY,planeX,planeY,halfH);
+
+  ctx.putImageData(buf,0,0);
+}
+
+// ============ Entity (silhouette) ============
+const entity={active:false,x:0,y:0,hideAt:0,opacity:0.55,scale:1};
+function drawEntity(dirX,dirY,planeX,planeY,halfH){
+  if(!entity.active) return;
+  const dx=entity.x-player.x, dy=entity.y-player.y;
+  const invDet=1/(planeX*dirY-dirX*planeY);
+  const tX=invDet*(dirY*dx-dirX*dy);
+  const tY=invDet*(-planeY*dx+planeX*dy);
+  if(tY<=0.2) return;
+  const screenX=Math.floor((W>>1)*(1+tX/tY));
+  const spriteH=Math.abs(Math.floor(H/tY))*0.95*entity.scale;
+  const spriteW=Math.floor(spriteH*0.34);
+  const dsY0=(-spriteH>>1)+halfH, deY0=(spriteH>>1)+halfH;
+  let dsY=dsY0, deY=deY0;
+  if(dsY<0)dsY=0; if(deY>H)deY=H;
+  let dsX=(screenX-(spriteW>>1)), deX=(screenX+(spriteW>>1));
+  if(dsX<0)dsX=0; if(deX>W)deX=W;
+  const distFade=Math.max(0.18,Math.min(1,1-(tY-3)/16));
+  const alphaBase=entity.opacity*distFade;
+  for(let x=dsX;x<deX;x++){
+    if(tY>zBuf[x]) continue;
+    const sxn=(x-(screenX-(spriteW>>1)))/spriteW;
+    for(let y=dsY;y<deY;y++){
+      const syn=(y-dsY0)/spriteH;
+      let shape=0;
+      if(syn<0.18){
+        const a=(sxn-0.5)/0.16, b=(syn-0.09)/0.09;
+        if(a*a+b*b<1) shape=1;
+      } else if(syn<0.22){
+        if(Math.abs(sxn-0.5)<0.07) shape=1;
+      } else if(syn<0.62){
+        const w=0.27-(syn-0.22)*0.08;
+        if(Math.abs(sxn-0.5)<w) shape=1;
+        const ay=Math.abs(syn-0.42);
+        if(ay<0.18 && Math.abs(Math.abs(sxn-0.5)-0.25)<0.04) shape=1;
+      } else if(syn<1.0){
+        const lx=Math.abs(sxn-0.5);
+        if(lx<0.22 && lx>0.04) shape=1;
+        if(syn>0.95 && lx<0.26) shape=1;
+      }
+      if(!shape) continue;
+      const idx=y*W+x;
+      const c=buf32[idx];
+      let r=c&0xff, g=(c>>8)&0xff, b=(c>>16)&0xff;
+      const a=alphaBase;
+      r=r*(1-a)+6*a; g=g*(1-a)+4*a; b=b*(1-a)+3*a;
+      buf32[idx]=0xff000000|((b|0)<<16)|((g|0)<<8)|(r|0);
+    }
+  }
+}
+
+// ============ Audio ============
+let ac=null, master, whine, whineGain, buzzGain;
+let noiseBuffer=null, audioReady=false;
+function makeNoiseBuffer(){
+  const len=ac.sampleRate*2;
+  const buf=ac.createBuffer(1,len,ac.sampleRate);
+  const d=buf.getChannelData(0);
+  for(let i=0;i<len;i++) d[i]=Math.random()*2-1;
+  return buf;
+}
+function initAudio(){
+  if(audioReady) return;
+  audioReady=true;
+  try{ac=new (window.AudioContext||window.webkitAudioContext)()}catch(e){return}
+  noiseBuffer=makeNoiseBuffer();
+  master=ac.createGain(); master.gain.value=0.55; master.connect(ac.destination);
+  // Low hum
+  const o1=ac.createOscillator(); o1.type='sine'; o1.frequency.value=58;
+  const o2=ac.createOscillator(); o2.type='sine'; o2.frequency.value=116;
+  const o3=ac.createOscillator(); o3.type='sawtooth'; o3.frequency.value=29.1;
+  const hum=ac.createGain(); hum.gain.value=0.18;
+  const sg=ac.createGain(); sg.gain.value=0.05;
+  const lp=ac.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=240; lp.Q.value=0.6;
+  o1.connect(hum); o2.connect(hum);
+  o3.connect(sg); sg.connect(lp);
+  hum.connect(lp); lp.connect(master);
+  o1.start(); o2.start(); o3.start();
+  const lfo=ac.createOscillator(); lfo.frequency.value=0.13;
+  const lfoG=ac.createGain(); lfoG.gain.value=0.06;
+  lfo.connect(lfoG); lfoG.connect(hum.gain); lfo.start();
+  // Fluorescent whine
+  whine=ac.createOscillator(); whine.type='sine'; whine.frequency.value=10700;
+  whineGain=ac.createGain(); whineGain.gain.value=0.010;
+  const wHP=ac.createBiquadFilter(); wHP.type='highpass'; wHP.frequency.value=8000;
+  whine.connect(wHP); wHP.connect(whineGain); whineGain.connect(master);
+  whine.start();
+  const wL=ac.createOscillator(); wL.frequency.value=4.7;
+  const wLG=ac.createGain(); wLG.gain.value=9;
+  wL.connect(wLG); wLG.connect(whine.frequency); wL.start();
+  // Buzz (continuous noise, gain modulated)
+  const buzz=ac.createBufferSource(); buzz.buffer=noiseBuffer; buzz.loop=true;
+  const bf=ac.createBiquadFilter(); bf.type='bandpass'; bf.frequency.value=340; bf.Q.value=2.5;
+  buzzGain=ac.createGain(); buzzGain.gain.value=0;
+  buzz.connect(bf); bf.connect(buzzGain); buzzGain.connect(master); buzz.start();
+}
+function updateListener(){
+  if(!ac||!ac.listener) return;
+  const L=ac.listener;
+  const fx=Math.cos(player.angle), fy=Math.sin(player.angle);
+  if(L.positionX){
+    L.positionX.value=player.x;
+    L.positionY.value=0;
+    L.positionZ.value=player.y;
+    L.forwardX.value=fx;
+    L.forwardY.value=0;
+    L.forwardZ.value=fy;
+    L.upX.value=0; L.upY.value=1; L.upZ.value=0;
+  } else if(L.setPosition){
+    L.setPosition(player.x,0,player.y);
+    L.setOrientation(fx,0,fy,0,1,0);
+  }
+}
+function tone(freq,dur,vol,type){
+  if(!ac) return;
+  const o=ac.createOscillator(); o.type=type||'sine'; o.frequency.value=freq;
+  const g=ac.createGain(); g.gain.value=0;
+  o.connect(g); g.connect(master);
+  const t=ac.currentTime;
+  g.gain.linearRampToValueAtTime(vol,t+0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.start(t); o.stop(t+dur+0.05);
+}
+function footstep(vol,pitch){
+  if(!ac) return;
+  const s=ac.createBufferSource(); s.buffer=noiseBuffer; s.loop=false;
+  s.playbackRate.value=(pitch||1)*(0.85+Math.random()*0.3);
+  const lp=ac.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=900+Math.random()*400;
+  const g=ac.createGain(); g.gain.value=0;
+  s.connect(lp); lp.connect(g); g.connect(master);
+  const t=ac.currentTime;
+  g.gain.linearRampToValueAtTime(vol,t+0.005);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+0.16);
+  s.start(t,Math.random()*1.5,0.18); s.stop(t+0.2);
+}
+function spatialStep(vol,pitch,relX,relY){
+  if(!ac) return;
+  const s=ac.createBufferSource(); s.buffer=noiseBuffer; s.loop=false;
+  s.playbackRate.value=(pitch||1)*(0.85+Math.random()*0.3);
+  const lp=ac.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=800+Math.random()*200;
+  const g=ac.createGain(); g.gain.value=0;
+  const panner=ac.createPanner();
+  panner.panningModel='HRTF';
+  panner.distanceModel='inverse';
+  panner.refDistance=0.6;
+  panner.maxDistance=25;
+  panner.rolloffFactor=2.2;
+  const px=player.x+relX, pz=player.y+relY;
+  if(panner.positionX){
+    panner.positionX.value=px; panner.positionY.value=0; panner.positionZ.value=pz;
+  } else if(panner.setPosition){
+    panner.setPosition(px,0,pz);
+  }
+  s.connect(lp); lp.connect(g); g.connect(panner); panner.connect(master);
+  const t=ac.currentTime;
+  g.gain.linearRampToValueAtTime(vol,t+0.005);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+0.18);
+  s.start(t,Math.random()*1.5,0.2); s.stop(t+0.22);
+}
+function buzzPulse(dur,vol){
+  if(!buzzGain) return;
+  const t=ac.currentTime;
+  buzzGain.gain.cancelScheduledValues(t);
+  buzzGain.gain.setValueAtTime(buzzGain.gain.value,t);
+  buzzGain.gain.linearRampToValueAtTime(vol,t+0.01);
+  buzzGain.gain.linearRampToValueAtTime(0,t+dur);
+}
+function scream(){
+  if(!ac) return;
+  const t=ac.currentTime;
+  const o=ac.createOscillator(); o.type='sawtooth';
+  o.frequency.setValueAtTime(420,t);
+  o.frequency.exponentialRampToValueAtTime(820,t+0.7);
+  o.frequency.exponentialRampToValueAtTime(280,t+1.7);
+  const g=ac.createGain(); g.gain.value=0;
+  const lp=ac.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=1300;
+  const hp=ac.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=320;
+  const noise=ac.createBufferSource(); noise.buffer=noiseBuffer;
+  const ng=ac.createGain(); ng.gain.value=0.03;
+  o.connect(lp); noise.connect(ng); ng.connect(lp); lp.connect(hp); hp.connect(g); g.connect(master);
+  g.gain.linearRampToValueAtTime(0.06,t+0.15);
+  g.gain.linearRampToValueAtTime(0.07,t+0.9);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+1.9);
+  o.start(t); o.stop(t+2); noise.start(t,Math.random()); noise.stop(t+2);
+}
+function jumpScream(){
+  if(!ac) return;
+  const t=ac.currentTime;
+  const o=ac.createOscillator(); o.type='square';
+  o.frequency.setValueAtTime(220,t);
+  o.frequency.exponentialRampToValueAtTime(1500,t+0.18);
+  const g=ac.createGain(); g.gain.value=0;
+  o.connect(g); g.connect(master);
+  g.gain.linearRampToValueAtTime(0.35,t+0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+0.5);
+  o.start(t); o.stop(t+0.55);
+  const n=ac.createBufferSource(); n.buffer=noiseBuffer;
+  const ng=ac.createGain(); ng.gain.value=0;
+  n.connect(ng); ng.connect(master);
+  ng.gain.linearRampToValueAtTime(0.3,t+0.01);
+  ng.gain.exponentialRampToValueAtTime(0.0001,t+0.45);
+  n.start(t,Math.random()); n.stop(t+0.5);
+}
+function distantThump(){
+  if(!ac) return;
+  const t=ac.currentTime;
+  const o=ac.createOscillator(); o.type='sine'; o.frequency.value=70;
+  const g=ac.createGain(); g.gain.value=0;
+  o.connect(g); g.connect(master);
+  g.gain.linearRampToValueAtTime(0.12,t+0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+0.5);
+  o.start(t); o.stop(t+0.55);
+}
+
+// ============ Controls ============
+const keys={};
+let mouseDX=0;
+addEventListener('keydown',e=>{
+  keys[e.code]=1;
+  if(e.code==='KeyF'){flashlight=!flashlight; tone(flashlight?900:300,0.06,0.04,'square')}
+});
+addEventListener('keyup',e=>{keys[e.code]=0});
+let pointerLocked=false;
+let started=false;
+function tryLock(){
+  if(!started){
+    started=true;
+    events.startTime=performance.now();
+    events.nextCheck=performance.now()+3200;
+    setTimeout(()=>{showSub("the hum never stops.",3500)},7200);
+    setTimeout(()=>{if(Math.random()<0.7) showSub("you've been here before.",3500)},32000);
+  }
+  initAudio();
+  startEl.classList.add('gone');
+  view.requestPointerLock?.();
+}
+view.addEventListener('click',tryLock);
+startEl.addEventListener('click',tryLock);
+document.addEventListener('pointerlockchange',()=>{
+  pointerLocked=document.pointerLockElement===view;
+});
+addEventListener('mousemove',e=>{
+  if(!pointerLocked) return;
+  mouseDX += e.movementX;
+});
+
+// ============ Subtitles ============
+let subTimer=0;
+function showSub(text,dur){
+  subEl.textContent=text;
+  subEl.classList.add('show');
+  subTimer=performance.now()+(dur||3500);
+}
+function tickSub(now){
+  if(subTimer && now>subTimer){subEl.classList.remove('show');subTimer=0}
+}
+
+// ============ Events ============
+const events={
+  nextCheck:0,
+  cooldown:0,
+  escalation:0,
+  startTime:performance.now(),
+  jumpUsed:false,
+  screamUsed:false,
+  silhouetteShown:0,
+  behindSeries:null
+};
+function nearestLight(){
+  let best=null,bd=Infinity;
+  for(let i=0;i<activeLights.length;i++){
+    const L=activeLights[i];
+    const dx=L.x-player.x, dy=L.y-player.y;
+    const d=dx*dx+dy*dy;
+    if(d<bd){bd=d;best=L}
+  }
+  return best;
+}
+function lightBehind(){
+  const bx=-Math.cos(player.angle), by=-Math.sin(player.angle);
+  let best=null,bs=0.5;
+  for(let i=0;i<activeLights.length;i++){
+    const L=activeLights[i];
+    if(!L.on) continue;
+    const dx=L.x-player.x, dy=L.y-player.y;
+    const d2=dx*dx+dy*dy;
+    if(d2<1.5||d2>80) continue;
+    const dot=(dx*bx+dy*by)/Math.sqrt(d2);
+    if(dot>bs){bs=dot;best=L}
+  }
+  return best;
+}
+function fireFlicker(){
+  const L=nearestLight(); if(!L) return;
+  const now=performance.now();
+  events.cooldown=now+2200;
+  const dur=400+Math.random()*700;
+  L._flickerEnd=now+dur;
+  L._flickering=true;
+  buzzPulse(dur/1000,0.06);
+  tone(1200,0.05,0.025,'square');
+  if(Math.random()<0.35) showSub("the fluorescents stutter.",2200);
+}
+function fireBehindSteps(syncToPlayer){
+  events.cooldown=performance.now()+(syncToPlayer?5800:4800);
+  const count=3+Math.floor(Math.random()*3);
+  const startA=player.angle;
+  let i=0;
+  events.behindSeries=setInterval(()=>{
+    if(i>=count){clearInterval(events.behindSeries);events.behindSeries=null;return}
+    const dA=Math.atan2(Math.sin(player.angle-startA),Math.cos(player.angle-startA));
+    if(Math.abs(dA)>1.3){clearInterval(events.behindSeries);events.behindSeries=null;return}
+    if(syncToPlayer){
+      const moving=keys.KeyW||keys.KeyA||keys.KeyS||keys.KeyD||keys.ArrowUp||keys.ArrowDown;
+      if(!moving){i++; return}
+    }
+    const fx=-Math.cos(player.angle), fy=-Math.sin(player.angle);
+    const off=1.4+Math.random()*1.6;
+    const jit=(Math.random()-0.5)*0.6;
+    const px=fx*off-fy*jit*0.5, py=fy*off+fx*jit*0.5;
+    spatialStep(0.45,syncToPlayer?0.97:0.92,px,py);
+    i++;
+  }, syncToPlayer?450:380+Math.random()*120);
+  if(Math.random()<0.35) showSub("footsteps. behind you.",2200);
+}
+function fireLightOff(){
+  const L=lightBehind(); if(!L) return;
+  events.cooldown=performance.now()+5000;
+  L.on=0; L._watchRestore=true;
+  tone(60,0.18,0.04,'sine');
+  showSub("a light went out.",2200);
+}
+function fireSilhouette(initial){
+  const angOff=(Math.random()-0.5)*0.3;
+  const angle=player.angle+angOff;
+  const fx=Math.cos(angle), fy=Math.sin(angle);
+  let mx=Math.floor(player.x), my=Math.floor(player.y);
+  const deltaX=Math.abs(1/fx), deltaY=Math.abs(1/fy);
+  let sideX,sideY,stepX,stepY;
+  if(fx<0){stepX=-1;sideX=(player.x-mx)*deltaX}else{stepX=1;sideX=(mx+1-player.x)*deltaX}
+  if(fy<0){stepY=-1;sideY=(player.y-my)*deltaY}else{stepY=1;sideY=(my+1-player.y)*deltaY}
+  let hit=0,steps=0;
+  while(!hit && steps<40){
+    if(sideX<sideY){sideX+=deltaX;mx+=stepX}else{sideY+=deltaY;my+=stepY}
+    if(isWall(mx,my)) hit=1;
+    steps++;
+  }
+  if(steps<5) return;
+  const placeDist=Math.max(4.5,steps-1.4);
+  entity.x=player.x+fx*placeDist;
+  entity.y=player.y+fy*placeDist;
+  entity.active=true;
+  entity.opacity=0.55+Math.random()*0.15;
+  entity.scale=1;
+  entity.hideAt=performance.now()+(initial?1400:900+Math.random()*900);
+  events.cooldown=performance.now()+6500;
+  events.silhouetteShown++;
+  if(initial || Math.random()<0.25) showSub("something at the end of the hall.",2500);
+}
+function fireGlimpse(){
+  const L=nearestLight();
+  if(L){L._flickering=true; L._flickerEnd=performance.now()+360}
+  fireSilhouette(false);
+  entity.hideAt=performance.now()+240;
+  entity.opacity=0.85;
+}
+function fireShadow(){
+  const ang=player.angle+(Math.random()*0.5-0.25);
+  const d=15+Math.random()*5;
+  entity.x=player.x+Math.cos(ang)*d;
+  entity.y=player.y+Math.sin(ang)*d;
+  entity.active=true;
+  entity.opacity=0.42;
+  entity.scale=1.1;
+  entity.hideAt=performance.now()+700;
+  events.cooldown=performance.now()+8000;
+}
+function fireDistantNoise(){
+  events.cooldown=performance.now()+3500;
+  if(Math.random()<0.55){
+    let i=0;
+    const id=setInterval(()=>{
+      if(i>=2){clearInterval(id);return}
+      const ang=Math.random()*Math.PI*2;
+      const d=10+Math.random()*8;
+      spatialStep(0.5,0.7,Math.cos(ang)*d,Math.sin(ang)*d);
+      i++;
+    },380);
+  } else {
+    distantThump();
+    if(Math.random()<0.3) showSub("something fell. somewhere.",2200);
+  }
+}
+function fireAnomaly(){
+  events.cooldown=performance.now()+9000;
+  const fx=Math.cos(player.angle), fy=Math.sin(player.angle);
+  const bx=Math.floor(player.x-fx*2.5);
+  const by=Math.floor(player.y-fy*2.5);
+  if(!isWall(bx,by)) return;
+  const cx=Math.floor(bx/CHUNK), cy=Math.floor(by/CHUNK);
+  const c=getChunk(cx,cy);
+  const lx=bx-cx*CHUNK, ly=by-cy*CHUNK;
+  c.tiles[ly*CHUNK+lx]=0;
+  showSub("a door that wasn't there.",2500);
+  const id=setInterval(()=>{
+    const dx=bx+0.5-player.x, dy=by+0.5-player.y;
+    const fx2=Math.cos(player.angle), fy2=Math.sin(player.angle);
+    const dist=Math.sqrt(dx*dx+dy*dy);
+    if(dist<0.01) return;
+    const dot=(dx*fx2+dy*fy2)/dist;
+    if(dot<-0.15){
+      c.tiles[ly*CHUNK+lx]=1;
+      clearInterval(id);
+    }
+  },900);
+  setTimeout(()=>{c.tiles[ly*CHUNK+lx]=1;clearInterval(id)},22000);
+}
+function fireScream(){
+  events.screamUsed=true;
+  events.cooldown=performance.now()+10000;
+  scream();
+  showSub("a scream. far away.",3500);
+}
+function fireJumpscare(){
+  events.jumpUsed=true;
+  events.cooldown=performance.now()+45000;
+  const fx=Math.cos(player.angle), fy=Math.sin(player.angle);
+  entity.x=player.x+fx*1.4;
+  entity.y=player.y+fy*1.4;
+  entity.active=true;
+  entity.opacity=0.95;
+  entity.scale=1.15;
+  entity.hideAt=performance.now()+200;
+  jumpScream();
+  player.angle+=(Math.random()-0.5)*0.12;
+}
+function tryEvent(now){
+  if(!started) return;
+  if(now<events.nextCheck) return;
+  events.nextCheck=now+1100+Math.random()*1700;
+  if(now<events.cooldown) return;
+  const elapsed=(now-events.startTime)/1000;
+  events.escalation=Math.min(1, elapsed/200);
+  if(events.silhouetteShown===0 && elapsed>4 && elapsed<11){
+    fireSilhouette(true); return;
+  }
+  const baseProb=0.32 + events.escalation*0.4;
+  if(Math.random()>baseProb) return;
+  const choices=[
+    {fn:fireFlicker,w:4.5},
+    {fn:()=>fireBehindSteps(false),w:3.2},
+    {fn:()=>fireBehindSteps(true),w:2.0},
+    {fn:fireLightOff,w:2.2},
+    {fn:()=>fireSilhouette(false),w:2.4 + events.escalation*0.8},
+    {fn:fireGlimpse,w:2.2},
+    {fn:fireDistantNoise,w:3.2},
+    {fn:fireShadow,w:0.7 + events.escalation*0.5},
+    {fn:fireAnomaly,w:0.65},
+    {fn:fireScream,w:events.screamUsed?0:0.3},
+    {fn:fireJumpscare,w:events.jumpUsed?0:0.04*events.escalation}
+  ];
+  let total=0; for(const c of choices) total+=c.w;
+  let r=Math.random()*total;
+  for(const c of choices){r-=c.w; if(r<=0){c.fn(); break}}
+}
+function tickLightsAndEvents(now){
+  if(entity.active && now>entity.hideAt) entity.active=false;
+  for(let i=0;i<activeLights.length;i++){
+    const L=activeLights[i];
+    if(!L.on && L._watchRestore){
+      const dx=L.x-player.x, dy=L.y-player.y;
+      const d2=dx*dx+dy*dy;
+      if(d2<0.01){L.on=1;L._watchRestore=false;continue}
+      const fx=Math.cos(player.angle), fy=Math.sin(player.angle);
+      const dot=(dx*fx+dy*fy)/Math.sqrt(d2);
+      if(dot>0.35){
+        L.on=1; L._watchRestore=false;
+        tone(1100,0.06,0.02,'square');
+      }
+    }
+    if(L._flickering){
+      if(now>L._flickerEnd){L._flickering=false; L.flick=1}
+      else {
+        const t=(now/35)|0;
+        const r=h2(t, L.seed, SEED);
+        L.flick = r>0.42 ? (0.42+r*0.58) : 0.18;
+      }
+    } else {
+      const t=now*0.0003 + L.phase;
+      L.flick = 0.95 + 0.05*Math.sin(t*7.1) + 0.03*Math.sin(t*23.7);
+      if(h2((now/4500)|0, L.seed, SEED+5)>0.992){
+        L.flick *= 0.55;
+      }
+    }
+  }
+}
+
+// ============ Movement ============
+function tryMove(nx,ny){
+  const r=0.22;
+  if(!isWall(Math.floor(nx+r),Math.floor(player.y)) && !isWall(Math.floor(nx-r),Math.floor(player.y))){
+    player.x=nx;
+  }
+  if(!isWall(Math.floor(player.x),Math.floor(ny+r)) && !isWall(Math.floor(player.x),Math.floor(ny-r))){
+    player.y=ny;
+  }
+}
+let lastFoot=0;
+function updateMovement(dt,now){
+  if(mouseDX){
+    player.angle += mouseDX*0.0024;
+    mouseDX=0;
+  }
+  let mx=0,my=0;
+  const f=keys.KeyW||keys.ArrowUp?1:0;
+  const b=keys.KeyS||keys.ArrowDown?1:0;
+  const l=keys.KeyA?1:0;
+  const r=keys.KeyD?1:0;
+  const lA=keys.ArrowLeft?1:0, rA=keys.ArrowRight?1:0;
+  const dirX=Math.cos(player.angle), dirY=Math.sin(player.angle);
+  const sX=-dirY, sY=dirX;
+  if(f){mx+=dirX;my+=dirY}
+  if(b){mx-=dirX*0.7;my-=dirY*0.7}
+  if(l){mx-=sX;my-=sY}
+  if(r){mx+=sX;my+=sY}
+  if(lA) player.angle -= 1.7*dt;
+  if(rA) player.angle += 1.7*dt;
+  const len=Math.sqrt(mx*mx+my*my);
+  const speed=2.6;
+  const moving=len>0.01;
+  if(moving){
+    mx/=len; my/=len;
+    const nx=player.x+mx*speed*dt;
+    const ny=player.y+my*speed*dt;
+    tryMove(nx,ny);
+    player.bobT += dt*9;
+    if(now-lastFoot>410){ footstep(0.12,1); lastFoot=now; }
+  } else {
+    player.bobT *= 0.92;
+  }
+  // head bob translates to slight vertical offset
+  const target = moving ? Math.sin(player.bobT)*0.8 : 0;
+  player.bobOff += (target - player.bobOff)*0.18;
+}
+
+// ============ Grain ============
+let grainBufW=0, grainBufH=0, grainData=null;
+function tickGrain(){
+  const W2=grainC.width>>2, H2=grainC.height>>2;
+  if(W2!==grainBufW||H2!==grainBufH){
+    grainBufW=W2; grainBufH=H2;
+    grainData=grainCtx.createImageData(W2,H2);
+  }
+  const d=grainData.data;
+  for(let i=0;i<d.length;i+=4){
+    const v=(Math.random()*255)|0;
+    d[i]=v; d[i+1]=v; d[i+2]=v; d[i+3]=255;
+  }
+  grainCtx.putImageData(grainData,0,0);
+  grainCtx.imageSmoothingEnabled=false;
+  grainCtx.drawImage(grainC,0,0,W2,H2,0,0,grainC.width,grainC.height);
+}
+
+// ============ Main Loop ============
+let last=performance.now();
+let grainAcc=0;
+function frame(now){
+  const dt=Math.min(0.06,(now-last)/1000);
+  last=now;
+  updateMovement(dt,now);
+  updateListener();
+  gatherLights();
+  tickLightsAndEvents(now);
+  tryEvent(now);
+  tickSub(now);
+  castFrame();
+  grainAcc+=dt;
+  if(grainAcc>0.08){grainAcc=0; tickGrain()}
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+})();
+</script>
+</body>
+</html>
