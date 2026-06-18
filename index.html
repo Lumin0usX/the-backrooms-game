@@ -16,6 +16,12 @@ body{cursor:none}
 #sub{position:fixed;left:8%;right:8%;bottom:9%;text-align:center;font-size:15px;color:#dec875;opacity:0;transition:opacity 0.7s;text-shadow:0 0 4px #000,0 1px 2px rgba(0,0,0,0.9);letter-spacing:0.06em;pointer-events:none;font-style:italic;z-index:7}
 #sub.show{opacity:0.88}
 #hint{position:fixed;left:12px;top:10px;font-size:11px;color:#988436;opacity:0.45;letter-spacing:0.05em;pointer-events:none;text-shadow:0 0 3px #000;z-index:7}
+#inv{position:fixed;right:14px;top:10px;font-size:12px;color:#d8b248;opacity:0.85;letter-spacing:0.18em;pointer-events:none;text-shadow:0 0 4px #000,0 1px 2px rgba(0,0,0,0.9);z-index:7;font-family:Consolas,monospace}
+#inv .it{display:inline-block;margin-left:10px;color:#5a4c20}
+#inv .it.got{color:#f4d472;text-shadow:0 0 6px rgba(244,212,114,0.6),0 0 2px #000}
+#ltitle{position:fixed;left:0;right:0;top:32%;text-align:center;font-size:54px;letter-spacing:0.55em;color:#f0e0a8;opacity:0;transition:opacity 1.4s;pointer-events:none;font-weight:normal;z-index:8;text-shadow:0 0 24px rgba(180,140,40,0.7),0 0 3px #000}
+#ltitle.show{opacity:1}
+#ltitle.pools{color:#cfe8f0;text-shadow:0 0 24px rgba(100,180,210,0.7),0 0 3px #000}
 #start{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,#1a1408 0%,#000 80%);color:#e8d27a;z-index:50;cursor:pointer;text-align:center;padding:20px;transition:opacity 1.2s}
 #start.gone{opacity:0;pointer-events:none}
 #start h1{font-size:38px;letter-spacing:0.45em;margin:0 0 22px;font-weight:normal;color:#f0d878;text-shadow:0 0 14px rgba(160,120,30,0.45),0 0 2px #000;animation:flk 7s infinite}
@@ -35,6 +41,8 @@ body{cursor:none}
 <div id="chr"></div>
 <div id="sub"></div>
 <div id="hint">WASD / ARROWS &middot; MOUSE LOOK &middot; F flashlight &middot; ESC release</div>
+<div id="inv">ITEMS <span class="it" id="iA">[ ] Almond Water</span><span class="it" id="iB">[ ] Battery</span><span class="it" id="iC">[ ] Key</span></div>
+<div id="ltitle"></div>
 <div id="start">
   <h1>THE BACKROOMS</h1>
   <p>You shouldn't be here.<br>The hum is louder than you remember.<br>The carpet is always damp.</p>
@@ -53,6 +61,10 @@ const buf32=new Uint32Array(buf.data.buffer);
 const buf8=new Uint8ClampedArray(buf.data.buffer);
 const subEl=document.getElementById('sub');
 const startEl=document.getElementById('start');
+const iAEl=document.getElementById('iA');
+const iBEl=document.getElementById('iB');
+const iCEl=document.getElementById('iC');
+const ltitleEl=document.getElementById('ltitle');
 const grainC=document.getElementById('grain');
 const grainCtx=grainC.getContext('2d');
 function resize(){grainC.width=Math.min(window.innerWidth,1600);grainC.height=Math.min(window.innerHeight,1000)}
@@ -134,10 +146,102 @@ const TEX_W=makeWallpaper();
 const TEX_F=makeCarpet();
 const TEX_C=makeCeiling();
 
+function makePoolWall(){
+  const t=newTex();
+  for(let y=0;y<TS;y++)for(let x=0;x<TS;x++){
+    let r=212,g=205,b=180;
+    const n=(vn(x*0.18,y*0.18,41)-0.5)*22;
+    const n2=(vn(x*0.7,y*0.7,53)-0.5)*12;
+    r+=n+n2;g+=n+n2;b+=(n+n2)*0.85;
+    // tile grid (8x16 brick-ish)
+    const gx=Math.min(x%16,15-(x%16));
+    const gy=Math.min(y%8,7-(y%8));
+    if(gx<1){r-=58;g-=54;b-=44}
+    if(gy<1){r-=52;g-=48;b-=38}
+    // water-line stain (horizontal band)
+    const ws=fbm(x*0.06,y*0.10,71);
+    if(y>36 && y<44 && ws>0.45){r-=22;g-=10;b+=6}
+    // mold patches
+    const mp=fbm(x*0.045,y*0.045,83);
+    if(mp>0.66){const k=(mp-0.66)*4;r-=k*30;g-=k*18;b-=k*6}
+    // speckle dirt
+    if(h2(x,y,17)>0.985){r-=30;g-=24;b-=14}
+    t[y*TS+x]=rgb(r,g,b);
+  }
+  return t;
+}
+function makePoolFloor(){
+  const t=newTex();
+  for(let y=0;y<TS;y++)for(let x=0;x<TS;x++){
+    // submerged tile floor — pale teal water + tile grid beneath
+    let r=92,g=128,b=132;
+    const n=(vn(x*0.42,y*0.42,91)-0.5)*30;
+    r+=n*0.7;g+=n;b+=n;
+    // tile grid 16
+    const gx=Math.min(x%16,15-(x%16));
+    const gy=Math.min(y%16,15-(y%16));
+    if(gx<1||gy<1){r-=32;g-=22;b-=18}
+    // caustic streaks
+    const c=fbm(x*0.08,y*0.08,103);
+    if(c>0.58){const k=(c-0.58)*4;r+=k*22;g+=k*30;b+=k*36}
+    // deep darker patches
+    const d=fbm(x*0.03,y*0.03,113);
+    if(d<0.38){r-=10;g-=6;b-=3}
+    if(h2(x,y,5)>0.992){r-=14;g-=10;b-=6}
+    t[y*TS+x]=rgb(r,g,b);
+  }
+  return t;
+}
+function makePoolCeiling(){
+  const t=newTex();
+  for(let y=0;y<TS;y++)for(let x=0;x<TS;x++){
+    let r=178,g=174,b=160;
+    const n=(vn(x*0.7,y*0.7,123)-0.5)*18;
+    r+=n;g+=n;b+=n*0.9;
+    const gx=Math.min(x%32,31-(x%32));
+    const gy=Math.min(y%32,31-(y%32));
+    if(gx<1||gy<1){r-=46;g-=42;b-=32}
+    // wet patches
+    const w=fbm(x*0.05,y*0.05,137);
+    if(w>0.6){const k=(w-0.6)*4;r-=k*30;g-=k*22;b-=k*8}
+    if(h2(x,y,19)>0.988){r-=28;g-=22;b-=12}
+    t[y*TS+x]=rgb(r,g,b);
+  }
+  return t;
+}
+const TEX_PW=makePoolWall();
+const TEX_PF=makePoolFloor();
+const TEX_PC=makePoolCeiling();
+
+// ============ Levels ============
+const LEVELS=[
+  { name:'BACKROOMS', wallTex:TEX_W, floorTex:TEX_F, ceilTex:TEX_C,
+    ambR:0.08, ambG:0.06, ambB:0.025,
+    fogR:10, fogG:7, fogB:3, fogRate:0.045,
+    lightR:1.0, lightG:0.93, lightB:0.58, lightI:7.0, lightProb:0.42,
+    ripple:false, moveScale:1.0 },
+  { name:'THE POOLS', wallTex:TEX_PW, floorTex:TEX_PF, ceilTex:TEX_PC,
+    ambR:0.06, ambG:0.09, ambB:0.10,
+    fogR:5, fogG:9, fogB:11, fogRate:0.038,
+    lightR:0.78, lightG:0.92, lightB:1.0, lightI:6.0, lightProb:0.30,
+    ripple:true, moveScale:0.72 }
+];
+let LEVEL=0;
+let LV=LEVELS[0];
+let levelTime=0;
+
 // ============ Player ============
 const player={x:1.5,y:1.5,angle:0,bobT:0,bobOff:0};
-try{const s=JSON.parse(localStorage.getItem('br_save')||'null');if(s&&isFinite(s.x)){player.x=s.x;player.y=s.y;player.angle=s.a}}catch(e){}
-function saveState(){try{localStorage.setItem('br_save',JSON.stringify({x:player.x,y:player.y,a:player.angle}))}catch(e){}}
+let inventory={a:false,b:false,c:false};
+let doorUsed=false;
+try{
+  const s=JSON.parse(localStorage.getItem('br_save')||'null');
+  if(s&&isFinite(s.x)){player.x=s.x;player.y=s.y;player.angle=s.a}
+  if(s&&typeof s.lvl==='number'){LEVEL=s.lvl|0;LV=LEVELS[LEVEL]||LEVELS[0]}
+  if(s&&s.inv){inventory.a=!!s.inv.a;inventory.b=!!s.inv.b;inventory.c=!!s.inv.c}
+  if(s&&s.dr){doorUsed=true}
+}catch(e){}
+function saveState(){try{localStorage.setItem('br_save',JSON.stringify({x:player.x,y:player.y,a:player.angle,lvl:LEVEL,inv:inventory,dr:doorUsed}))}catch(e){}}
 setInterval(saveState,3500);
 
 // ============ World / chunks ============
@@ -145,7 +249,7 @@ const CHUNK=16;
 const chunks=new Map();
 const chunkOrder=[];
 const MAX_CHUNKS=200;
-function ckey(cx,cy){return cx+","+cy}
+function ckey(cx,cy){return LEVEL+":"+cx+","+cy}
 const CELL=5;
 function isMazeWall(gx,gy){
   const cx=Math.floor(gx/CELL), cy=Math.floor(gy/CELL);
@@ -174,35 +278,124 @@ function isMazeWall(gx,gy){
   if(h2(gx, gy, SEED+1023)>0.987) return 1;
   return 0;
 }
+// Pools level: large room-and-pillar chambers with corridor openings
+const PROOM=16;
+function isPoolWall(gx,gy){
+  const cx=Math.floor(gx/PROOM), cy=Math.floor(gy/PROOM);
+  const lx=gx-cx*PROOM, ly=gy-cy*PROOM;
+  const onEX=(lx===0||lx===PROOM-1);
+  const onEY=(ly===0||ly===PROOM-1);
+  if(onEX){
+    // door gaps in middle, plus occasional fully-open walls (room merges)
+    const doorY=6+(h2(cx*2+(lx===0?0:1), cy, SEED+401)*4)|0;
+    if(ly>=doorY && ly<=doorY+2) return 0;
+    if(h2(cx*2+(lx===0?0:1), cy, SEED+411)>0.72) return 0;
+    return 1;
+  }
+  if(onEY){
+    const doorX=6+(h2(cx, cy*2+(ly===0?0:1), SEED+402)*4)|0;
+    if(lx>=doorX && lx<=doorX+2) return 0;
+    if(h2(cx, cy*2+(ly===0?0:1), SEED+412)>0.72) return 0;
+    return 1;
+  }
+  // square support pillars (2x2 blocks at four interior positions)
+  const inPX=(lx===4||lx===5||lx===11||lx===12);
+  const inPY=(ly===4||ly===5||ly===11||ly===12);
+  if(inPX && inPY){
+    const pi=(lx<8?0:1)*2+(ly<8?0:1);
+    if(h2(cx*4+pi, cy*4+pi, SEED+421)>0.22) return 1;
+  }
+  // narrow maintenance partitions (rare)
+  const variant=fbm(cx*0.19,cy*0.19,SEED+431);
+  if(variant>0.66){
+    if(lx===7 && ly>=2 && ly<=5) return 1;
+    if(ly===8 && lx>=10 && lx<=13) return 1;
+  }
+  return 0;
+}
+function isWallGen(gx,gy){ return LEVEL===0 ? isMazeWall(gx,gy) : isPoolWall(gx,gy); }
 function genChunk(cx,cy){
   const tiles=new Uint8Array(CHUNK*CHUNK);
   const lights=[];
   for(let ly=0;ly<CHUNK;ly++)for(let lx=0;lx<CHUNK;lx++){
     const gx=cx*CHUNK+lx, gy=cy*CHUNK+ly;
-    tiles[ly*CHUNK+lx]=isMazeWall(gx,gy);
+    tiles[ly*CHUNK+lx]=isWallGen(gx,gy);
   }
   if(cx===0&&cy===0){
-    for(let dy=1;dy<5;dy++)for(let dx=1;dx<5;dx++){
-      if(dx<CHUNK&&dy<CHUNK) tiles[dy*CHUNK+dx]=0;
+    if(LEVEL===0){
+      // Spawn room
+      for(let dy=1;dy<=4;dy++)for(let dx=1;dx<=4;dx++) tiles[dy*CHUNK+dx]=0;
+      // East corridor toward Almond Water (item A at 13.5,2.5) and door (5.5,1.5)
+      for(let dx=1;dx<=14;dx++){ tiles[1*CHUNK+dx]=0; tiles[2*CHUNK+dx]=0; tiles[3*CHUNK+dx]=0; }
+      // South corridor toward Battery (item B at 2.5,13.5)
+      for(let dy=1;dy<=14;dy++){ tiles[dy*CHUNK+1]=0; tiles[dy*CHUNK+2]=0; tiles[dy*CHUNK+3]=0; }
+      // Diagonal path toward Brass Key (item C at 12.5,12.5)
+      for(let d=4;d<=13;d++){
+        tiles[d*CHUNK+d]=0;
+        if(d+1<CHUNK) tiles[(d+1)*CHUNK+d]=0;
+        if(d+1<CHUNK) tiles[d*CHUNK+(d+1)]=0;
+      }
+      // Open small chamber around item C
+      for(let dy=11;dy<=13;dy++)for(let dx=11;dx<=13;dx++) tiles[dy*CHUNK+dx]=0;
+    } else {
+      // Pools: leave isPoolWall layout intact — spawn at (8.5, 8.5) is between pillars
     }
   }
-  for(let ly=0;ly<CHUNK;ly++)for(let lx=0;lx<CHUNK;lx++){
-    if(tiles[ly*CHUNK+lx]!==0) continue;
-    const gx=cx*CHUNK+lx, gy=cy*CHUNK+ly;
-    const mlx=((gx%CELL)+CELL)%CELL;
-    const mly=((gy%CELL)+CELL)%CELL;
-    const cellCx=Math.floor(gx/CELL), cellCy=Math.floor(gy/CELL);
-    const isCenter=(mlx===((CELL/2)|0) && mly===((CELL/2)|0));
-    if(isCenter && h2(cellCx, cellCy, SEED+57)<0.42){
-      lights.push({
-        x:gx+0.5, y:gy+0.5,
-        r:1.0, g:0.93, b:0.58,
-        intensity:7.0,
-        phase:h2(gx,gy,SEED+13)*100,
-        on:1, flick:1,
-        _flickering:false, _flickerEnd:0, _watchRestore:false,
-        seed:(gx*131+gy*7919)|0
-      });
+  if(LEVEL===0){
+    for(let ly=0;ly<CHUNK;ly++)for(let lx=0;lx<CHUNK;lx++){
+      if(tiles[ly*CHUNK+lx]!==0) continue;
+      const gx=cx*CHUNK+lx, gy=cy*CHUNK+ly;
+      const mlx=((gx%CELL)+CELL)%CELL;
+      const mly=((gy%CELL)+CELL)%CELL;
+      const cellCx=Math.floor(gx/CELL), cellCy=Math.floor(gy/CELL);
+      const isCenter=(mlx===((CELL/2)|0) && mly===((CELL/2)|0));
+      if(isCenter && h2(cellCx, cellCy, SEED+57)<LV.lightProb){
+        lights.push({
+          x:gx+0.5, y:gy+0.5,
+          r:LV.lightR, g:LV.lightG, b:LV.lightB,
+          intensity:LV.lightI,
+          phase:h2(gx,gy,SEED+13)*100,
+          on:1, flick:1,
+          _flickering:false, _flickerEnd:0, _watchRestore:false,
+          seed:(gx*131+gy*7919)|0
+        });
+      }
+    }
+  } else {
+    // Pools: one or two ceiling lights per room (room is 16x16)
+    const rx=cx, ry=cy;
+    const lprob=LV.lightProb;
+    // primary light near room center
+    if(h2(rx, ry, SEED+557)<lprob+0.35){
+      const ox=6+(h2(rx,ry,SEED+561)*4)|0;
+      const oy=6+(h2(rx,ry,SEED+562)*4)|0;
+      if(tiles[oy*CHUNK+ox]===0){
+        lights.push({
+          x:cx*CHUNK+ox+0.5, y:cy*CHUNK+oy+0.5,
+          r:LV.lightR, g:LV.lightG, b:LV.lightB,
+          intensity:LV.lightI,
+          phase:h2(rx,ry,SEED+571)*100,
+          on:1, flick:1,
+          _flickering:false, _flickerEnd:0, _watchRestore:false,
+          seed:(rx*131+ry*7919)|0
+        });
+      }
+    }
+    // sometimes a second light at far corner
+    if(h2(rx, ry, SEED+581)<lprob*0.6){
+      const ox=10+(h2(rx,ry,SEED+591)*3)|0;
+      const oy=10+(h2(rx,ry,SEED+592)*3)|0;
+      if(tiles[oy*CHUNK+ox]===0){
+        lights.push({
+          x:cx*CHUNK+ox+0.5, y:cy*CHUNK+oy+0.5,
+          r:LV.lightR, g:LV.lightG, b:LV.lightB,
+          intensity:LV.lightI*0.8,
+          phase:h2(rx,ry,SEED+601)*100,
+          on:1, flick:1,
+          _flickering:false, _flickerEnd:0, _watchRestore:false,
+          seed:(rx*263+ry*8191)|0
+        });
+      }
     }
   }
   return {tiles,lights,touched:performance.now()};
@@ -218,9 +411,11 @@ function getChunk(cx,cy){
       const pcx=Math.floor(player.x/CHUNK),pcy=Math.floor(player.y/CHUNK);
       for(let i=0;i<chunkOrder.length;i++){
         const ok=chunkOrder[i];
-        const p=ok.split(',');
+        const ci=ok.indexOf(':');
+        const lvl=ci>=0?+ok.substring(0,ci):0;
+        const p=(ci>=0?ok.substring(ci+1):ok).split(',');
         const ocx=+p[0],ocy=+p[1];
-        if(Math.abs(ocx-pcx)>3||Math.abs(ocy-pcy)>3){
+        if(lvl!==LEVEL || Math.abs(ocx-pcx)>3 || Math.abs(ocy-pcy)>3){
           chunks.delete(ok);chunkOrder.splice(i,1);
           break;
         }
@@ -239,7 +434,9 @@ function isWall(mx,my){
 }
 // Make sure player isn't stuck inside a wall from old save
 if(isWall(Math.floor(player.x), Math.floor(player.y))){
-  player.x=1.5; player.y=1.5; player.angle=0;
+  if(LEVEL===0){ player.x=1.5; player.y=1.5; }
+  else { player.x=8.5; player.y=8.5; }
+  player.angle=0;
 }
 // Pregen chunks around spawn
 {
@@ -262,12 +459,10 @@ function gatherLights(){
     }
   }
 }
-const FOG_R2=10,FOG_G2=7,FOG_B2=3;
-const AMB_R=0.08,AMB_G=0.06,AMB_B=0.025;
 let flashlight=true;
 let _flDirX=1,_flDirY=0;
 function sampleLightAt(wx,wy){
-  let r=AMB_R,g=AMB_G,b=AMB_B;
+  let r=LV.ambR,g=LV.ambG,b=LV.ambB;
   const N=activeLights.length;
   for(let i=0;i<N;i++){
     const L=activeLights[i];
@@ -296,7 +491,7 @@ function sampleLightAt(wx,wy){
 }
 let _lcR=0,_lcG=0,_lcB=0;
 function sample3(wx,wy){
-  let r=AMB_R,g=AMB_G,b=AMB_B;
+  let r=LV.ambR,g=LV.ambG,b=LV.ambB;
   const N=activeLights.length;
   for(let i=0;i<N;i++){
     const L=activeLights[i];
@@ -340,14 +535,14 @@ function castFrame(){
   for(let y=0;y<H;y++){
     let p=y-halfH; const isFloor=p>0; if(!isFloor) p=-p;
     if(p<1){
-      const c=0xff000000|(FOG_B2<<16)|(FOG_G2<<8)|FOG_R2;
+      const c=0xff000000|(LV.fogB<<16)|(LV.fogG<<8)|LV.fogR;
       const off=y*W;
       for(let x=0;x<W;x++) buf32[off+x]=c;
       continue;
     }
     const rowDist=camZ/p;
     if(rowDist>120){
-      const c=0xff000000|(FOG_B2<<16)|(FOG_G2<<8)|FOG_R2;
+      const c=0xff000000|(LV.fogB<<16)|(LV.fogG<<8)|LV.fogR;
       const off=y*W;
       for(let x=0;x<W;x++) buf32[off+x]=c;
       continue;
@@ -358,7 +553,7 @@ function castFrame(){
     const stepY=rowDist*(rayDY1-rayDY0)/W;
     let fx=player.x+rowDist*rayDX0;
     let fy=player.y+rowDist*rayDY0;
-    const tex=isFloor?TEX_F:TEX_C;
+    const tex=isFloor?LV.floorTex:LV.ceilTex;
     const rowOff=y*W;
     const STRIDE=16;
     const nSamples=(W>>4)+1;
@@ -368,9 +563,13 @@ function castFrame(){
       lightCols[s*3]=_lcR;lightCols[s*3+1]=_lcG;lightCols[s*3+2]=_lcB;
       sfx+=stepX*STRIDE;sfy+=stepY*STRIDE;
     }
-    const fog=1-Math.exp(-rowDist*0.045);
+    const fog=1-Math.exp(-rowDist*LV.fogRate);
     const ifog=1-fog;
-    const fogRf=FOG_R2*fog, fogGf=FOG_G2*fog, fogBf=FOG_B2*fog;
+    const fogRf=LV.fogR*fog, fogGf=LV.fogG*fog, fogBf=LV.fogB*fog;
+    if(LV.ripple && isFloor){
+      const wm=1+Math.sin(rowDist*0.55+levelTime*1.6)*0.05;
+      lightCols[0]*=wm;lightCols[1]*=wm;lightCols[2]*=wm;
+    }
     let si=0;
     let cR=lightCols[0],cG=lightCols[1],cB=lightCols[2];
     let nR=lightCols[3],nG=lightCols[4],nB=lightCols[5];
@@ -435,15 +634,15 @@ function castFrame(){
     sample3(hitX,hitY);
     const sm = side===1 ? 0.82 : 1.0;
     const lR=_lcR*sm, lG=_lcG*sm, lB=_lcB*sm;
-    const fog=1-Math.exp(-perp*0.045);
+    const fog=1-Math.exp(-perp*LV.fogRate);
     const ifog=1-fog;
-    const fogRf=FOG_R2*fog, fogGf=FOG_G2*fog, fogBf=FOG_B2*fog;
+    const fogRf=LV.fogR*fog, fogGf=LV.fogG*fog, fogBf=LV.fogB*fog;
     const step=TS/lineH;
     let texPos=(drawStart-drawStartO)*step;
     for(let y=drawStart;y<drawEnd;y++){
       const ty=((texPos|0)&TM);
       texPos+=step;
-      const c=TEX_W[ty*TS+texX];
+      const c=LV.wallTex[ty*TS+texX];
       let r=(c&0xff)*lR, g=((c>>8)&0xff)*lG, b=((c>>16)&0xff)*lB;
       r=r*ifog+fogRf;g=g*ifog+fogGf;b=b*ifog+fogBf;
       if(r>255)r=255;if(g>255)g=255;if(b>255)b=255;
@@ -453,6 +652,12 @@ function castFrame(){
 
   // ---- Entity silhouette ----
   drawEntity(dirX,dirY,planeX,planeY,halfH);
+
+  // ---- Items + Door billboards ----
+  drawBillboards(dirX,dirY,planeX,planeY,halfH);
+
+  // ---- Level transition fade ----
+  applyTransitionOverlay();
 
   ctx.putImageData(buf,0,0);
 }
@@ -504,6 +709,202 @@ function drawEntity(dirX,dirY,planeX,planeY,halfH){
       const a=alphaBase;
       r=r*(1-a)+6*a; g=g*(1-a)+4*a; b=b*(1-a)+3*a;
       buf32[idx]=0xff000000|((b|0)<<16)|((g|0)<<8)|(r|0);
+    }
+  }
+}
+
+// ============ Items, Door, Transition ============
+const items=[
+  {id:'a', name:'Almond Water', x:13.5, y:2.5,  r:1.0,  g:0.96, b:0.55, found:!!inventory.a},
+  {id:'b', name:'Old Battery',  x:2.5,  y:13.5, r:0.45, g:0.95, b:0.55, found:!!inventory.b},
+  {id:'c', name:'Brass Key',    x:12.5, y:12.5, r:1.0,  g:0.72, b:0.30, found:!!inventory.c}
+];
+const door={x:5.5, y:1.5};
+function invCount(){return (inventory.a?1:0)+(inventory.b?1:0)+(inventory.c?1:0)}
+function updateInvHUD(){
+  if(LEVEL!==0){
+    iAEl.parentElement.style.opacity=0;
+    return;
+  }
+  iAEl.parentElement.style.opacity='';
+  iAEl.className='it'+(inventory.a?' got':'');
+  iBEl.className='it'+(inventory.b?' got':'');
+  iCEl.className='it'+(inventory.c?' got':'');
+  iAEl.textContent=(inventory.a?'[x]':'[ ]')+' Almond Water';
+  iBEl.textContent=(inventory.b?'[x]':'[ ]')+' Battery';
+  iCEl.textContent=(inventory.c?'[x]':'[ ]')+' Key';
+}
+updateInvHUD();
+let _doorMsgAt=0;
+function checkPickupsAndDoor(now){
+  if(LEVEL!==0||transition.active) return;
+  for(let i=0;i<items.length;i++){
+    const it=items[i];
+    if(it.found) continue;
+    const dx=it.x-player.x, dy=it.y-player.y;
+    if(dx*dx+dy*dy<0.55){
+      it.found=true;
+      inventory[it.id]=true;
+      updateInvHUD();
+      const n=invCount();
+      showSub(`Picked up: ${it.name}  (${n}/3)`, 3.2);
+      tone(700+i*180, 0.18, 0.16, 'sine');
+      tone(1200+i*200, 0.22, 0.10, 'triangle');
+      saveState();
+    }
+  }
+  if(!doorUsed){
+    const dx=door.x-player.x, dy=door.y-player.y;
+    if(dx*dx+dy*dy<0.65){
+      if(invCount()===3){
+        startTransition();
+      } else if(now-_doorMsgAt>3500){
+        showSub(`LOCKED — collect ${3-invCount()} more`, 2.4);
+        tone(180, 0.18, 0.10, 'square');
+        _doorMsgAt=now;
+      }
+    }
+  }
+}
+const transition={active:false, t:0, dur:2.4, switched:false};
+function startTransition(){
+  if(transition.active||doorUsed) return;
+  transition.active=true;
+  transition.t=0;
+  transition.switched=false;
+  showSub('THE DOOR OPENS', 2.0);
+  tone(70, 1.4, 0.30, 'sawtooth');
+  tone(140, 1.4, 0.18, 'sine');
+}
+function tickTransition(dt){
+  if(!transition.active) return;
+  transition.t+=dt;
+  if(!transition.switched && transition.t>transition.dur*0.5){
+    transition.switched=true;
+    doorUsed=true;
+    LEVEL=1; LV=LEVELS[1];
+    player.x=8.5; player.y=8.5; player.angle=0;
+    player.bobT=0; player.bobOff=0;
+    chunks.clear(); chunkOrder.length=0;
+    activeLights.length=0;
+    _wccx=1e9; _wccy=1e9;
+    const pcx=Math.floor(player.x/CHUNK), pcy=Math.floor(player.y/CHUNK);
+    for(let dx=-4;dx<=4;dx++) for(let dy=-4;dy<=4;dy++) getChunk(pcx+dx,pcy+dy);
+    if(isWall(Math.floor(player.x), Math.floor(player.y))){
+      player.x=8.5; player.y=8.5;
+    }
+    levelTime=0;
+    saveState();
+    updateInvHUD();
+    ltitleEl.className='pools show';
+    ltitleEl.textContent='THE POOLS';
+    setTimeout(()=>{ltitleEl.className='pools'},4000);
+  }
+  if(transition.t>=transition.dur){
+    transition.active=false;
+  }
+}
+function applyTransitionOverlay(){
+  if(!transition.active) return;
+  const t=transition.t/transition.dur;
+  const alpha = t<0.5 ? t*2 : (1-t)*2;
+  if(alpha<=0.005) return;
+  const a=Math.min(1,alpha);
+  const ia=1-a;
+  const fr=232*a, fg=222*a, fb=180*a;
+  for(let i=0;i<W*H;i++){
+    const c=buf32[i];
+    let cr=(c&0xff)*ia+fr;
+    let cg=((c>>8)&0xff)*ia+fg;
+    let cb=((c>>16)&0xff)*ia+fb;
+    if(cr>255)cr=255;if(cg>255)cg=255;if(cb>255)cb=255;
+    buf32[i]=0xff000000|((cb|0)<<16)|((cg|0)<<8)|(cr|0);
+  }
+}
+
+function drawBillboards(dirX,dirY,planeX,planeY,halfH){
+  if(LEVEL!==0) return;
+  for(let i=0;i<items.length;i++){
+    if(!items[i].found) drawItemSprite(items[i], dirX,dirY,planeX,planeY,halfH);
+  }
+  if(!doorUsed) drawDoorSprite(dirX,dirY,planeX,planeY,halfH);
+}
+function drawItemSprite(it, dirX,dirY,planeX,planeY,halfH){
+  const dx=it.x-player.x, dy=it.y-player.y;
+  const invDet=1/(planeX*dirY-dirX*planeY);
+  const tX=invDet*(dirY*dx-dirX*dy);
+  const tY=invDet*(-planeY*dx+planeX*dy);
+  if(tY<=0.15) return;
+  const screenX=Math.floor((W>>1)*(1+tX/tY));
+  const rad=Math.max(2, Math.floor(Math.abs(H/tY)*0.18));
+  if(rad>140) return;
+  const cyB=halfH;
+  const pulse = 0.78+0.22*Math.sin(performance.now()*0.005 + it.id.charCodeAt(0));
+  const r2=rad*rad;
+  const xs=Math.max(0,screenX-rad), xe=Math.min(W,screenX+rad);
+  const ys=Math.max(0,cyB-rad), ye=Math.min(H,cyB+rad);
+  const ir=it.r*255, ig=it.g*255, ib=it.b*255;
+  for(let y=ys;y<ye;y++){
+    const dyh=y-cyB;
+    for(let x=xs;x<xe;x++){
+      const dxh=x-screenX;
+      const d2p=dxh*dxh+dyh*dyh;
+      if(d2p>=r2) continue;
+      const dn=d2p/r2;
+      const fall=1-dn;
+      const intensity=fall*fall*pulse;
+      const occluded = tY>zBuf[x];
+      const a = Math.min(1, intensity*(occluded?0.45:2.0));
+      if(a<0.01) continue;
+      const idx=y*W+x;
+      const c=buf32[idx];
+      const cr=c&0xff, cg=(c>>8)&0xff, cb=(c>>16)&0xff;
+      let nr=cr*(1-a*0.5)+ir*a;
+      let ng=cg*(1-a*0.5)+ig*a;
+      let nb=cb*(1-a*0.5)+ib*a;
+      if(nr>255)nr=255;if(ng>255)ng=255;if(nb>255)nb=255;
+      buf32[idx]=0xff000000|((nb|0)<<16)|((ng|0)<<8)|(nr|0);
+    }
+  }
+}
+function drawDoorSprite(dirX,dirY,planeX,planeY,halfH){
+  const dx=door.x-player.x, dy=door.y-player.y;
+  const invDet=1/(planeX*dirY-dirX*planeY);
+  const tX=invDet*(dirY*dx-dirX*dy);
+  const tY=invDet*(-planeY*dx+planeX*dy);
+  if(tY<=0.15) return;
+  const screenX=Math.floor((W>>1)*(1+tX/tY));
+  const spriteH=Math.abs(Math.floor(H/tY))*1.05;
+  const spriteW=Math.max(2,Math.floor(spriteH*0.42));
+  if(spriteW>260) return;
+  const cy=halfH;
+  const dsY=cy-(spriteH>>1), deY=cy+(spriteH>>1);
+  const dsX=screenX-(spriteW>>1), deX=screenX+(spriteW>>1);
+  const unlocked=invCount()===3;
+  const pulse=0.78+0.22*Math.sin(performance.now()*0.004);
+  const dr=unlocked?80:200, dg=unlocked?220:120, db=unlocked?110:30;
+  const fr=210, fg=170, fb=70;
+  const ys=Math.max(0,dsY), ye=Math.min(H,deY);
+  const xs=Math.max(0,dsX), xe=Math.min(W,deX);
+  for(let y=ys;y<ye;y++){
+    const syn=(y-dsY)/spriteH;
+    for(let x=xs;x<xe;x++){
+      if(tY>zBuf[x]) continue;
+      const sxn=(x-dsX)/spriteW;
+      const onEdge = sxn<0.07 || sxn>0.93 || syn<0.04 || syn>0.96;
+      const inside = !onEdge && sxn>0.10 && sxn<0.90 && syn>0.07 && syn<0.94;
+      let a=0, lr=0, lg=0, lb=0;
+      if(onEdge){a=0.94; lr=fr; lg=fg; lb=fb}
+      else if(inside){a=0.82*pulse; lr=dr; lg=dg; lb=db}
+      else continue;
+      const idx=y*W+x;
+      const c=buf32[idx];
+      const cr=c&0xff, cg=(c>>8)&0xff, cb=(c>>16)&0xff;
+      let nr=cr*(1-a)+lr*a;
+      let ng=cg*(1-a)+lg*a;
+      let nb=cb*(1-a)+lb*a;
+      if(nr>255)nr=255;if(ng>255)ng=255;if(nb>255)nb=255;
+      buf32[idx]=0xff000000|((nb|0)<<16)|((ng|0)<<8)|(nr|0);
     }
   }
 }
@@ -686,8 +1087,16 @@ function tryLock(){
     started=true;
     events.startTime=performance.now();
     events.nextCheck=performance.now()+3200;
-    setTimeout(()=>{showSub("the hum never stops.",3500)},7200);
-    setTimeout(()=>{if(Math.random()<0.7) showSub("you've been here before.",3500)},32000);
+    if(LEVEL===0){
+      setTimeout(()=>{showSub("the hum never stops.",3500)},7200);
+      setTimeout(()=>{if(Math.random()<0.7) showSub("you've been here before.",3500)},32000);
+      setTimeout(()=>{showSub("Find 3 items to unlock the door.",4200)},2400);
+    } else {
+      ltitleEl.className='pools show';
+      ltitleEl.textContent='THE POOLS';
+      setTimeout(()=>{ltitleEl.className='pools'},3800);
+      setTimeout(()=>{showSub("the water never ends.",3500)},6000);
+    }
   }
   initAudio();
   startEl.classList.add('gone');
@@ -985,21 +1394,23 @@ function updateMovement(dt,now){
   if(lA) player.angle -= 1.7*dt;
   if(rA) player.angle += 1.7*dt;
   const len=Math.sqrt(mx*mx+my*my);
-  const speed=2.6;
+  const speed=2.6*LV.moveScale;
   const moving=len>0.01;
   if(moving){
     mx/=len; my/=len;
     const nx=player.x+mx*speed*dt;
     const ny=player.y+my*speed*dt;
     tryMove(nx,ny);
-    player.bobT += dt*9;
-    if(now-lastFoot>410){ footstep(0.12,1); lastFoot=now; }
+    player.bobT += dt*9*LV.moveScale;
+    const stepGap = LEVEL===1 ? 560 : 410;
+    if(now-lastFoot>stepGap){ footstep(LEVEL===1?0.18:0.12, LEVEL===1?0.6:1); lastFoot=now; }
   } else {
     player.bobT *= 0.92;
   }
   // head bob translates to slight vertical offset
   const target = moving ? Math.sin(player.bobT)*0.8 : 0;
   player.bobOff += (target - player.bobOff)*0.18;
+  checkPickupsAndDoor(now);
 }
 
 // ============ Grain ============
@@ -1026,6 +1437,8 @@ let grainAcc=0;
 function frame(now){
   const dt=Math.min(0.06,(now-last)/1000);
   last=now;
+  levelTime += dt;
+  tickTransition(dt);
   updateMovement(dt,now);
   updateListener();
   gatherLights();
