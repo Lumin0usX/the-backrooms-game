@@ -1,6 +1,6 @@
 # The Backrooms
 
-> **Status: BETA** — playable, but rough edges remain. Core loop now works: explore the Backrooms, collect 3 items, unlock the door, descend into The Pools.
+> **Status: BETA** — playable, but rough edges remain. Core loop now works: wander deep into the Backrooms, hunt down 3 items, unlock the door, descend into The Pools. 10 achievements track your progress, and a portable save code lets you carry your run anywhere.
 >
 > Still missing: sanity / stamina meters, additional Backrooms levels, audio mute UI toggle, settings menu.
 >
@@ -16,11 +16,12 @@ Or download and open `index.html` locally in any modern browser.
 
 ### Level 0 — The Backrooms
 - Endless yellow-wallpaper maze, damp carpet, fluorescent buzz
-- Three collectible items hidden in the maze:
-  - **Almond Water** (down the east corridor)
-  - **Old Battery** (down the south corridor)
-  - **Brass Key** (deeper, in the diagonal chamber)
+- Three collectible items hidden **far from spawn** — each takes minutes of wandering through the maze to reach:
+  - **Almond Water** (far east, ~75 tiles out)
+  - **Old Battery** (far south, ~75 tiles out)
+  - **Brass Key** (far southeast, deeper than both — ~110 tiles out)
 - A locked **exit door** near spawn — pick up all 3 to unlock
+- **Spare batteries** spawn rarely as glowing green drops, with denser drops the further you stray from spawn
 - Walk into the door once unlocked → fade transition → descend to The Pools
 
 ### Level 1 — The Pools
@@ -46,6 +47,25 @@ Or download and open `index.html` locally in any modern browser.
 - A persistent HUD in the lower-left shows the charge bar + spare count
 - Inventory state, battery count and charge all persist in `localStorage`
 
+## Achievements
+
+- Press **`J`** to open the achievements panel
+- 10 hand-picked, hard-to-earn achievements. A Steam-style toast slides in from the right corner the moment you unlock one
+- Examples (the easier handful):
+  - **First Glimpse** — witness your first anomaly
+  - **Three Trinkets** — collect all 3 Backrooms items
+  - **Threshold** — descend into The Pools
+- Harder ones include 5,000 walked tiles, 10 minutes in The Pools with the flashlight off, holding 8 spare batteries at once, and accumulating two hours of playtime
+- Progress and unlocks persist in `localStorage` and travel with your save code
+
+## Save Codes
+
+- Press **`K`** to open the save-code panel
+- Encodes your full run — position, level, inventory, batteries, achievements, walked / wading distance, anomaly count, picked-up battery drops — into a single portable string of the form `BR1-<base64>-<checksum>`
+- **COPY** writes the current code to your clipboard; **REFRESH** regenerates it from the live state
+- Paste any valid code into the load box and hit **LOAD** to replace the current save — useful for backing up before a risky push, hopping between devices, or sharing a deep run
+- Codes carry a built-in checksum and version tag so a malformed paste is rejected instead of corrupting your save
+
 ## Controls
 
 | Key | Action |
@@ -54,10 +74,12 @@ Or download and open `index.html` locally in any modern browser.
 | Mouse | Look |
 | `F` | Toggle flashlight |
 | `I` | Open / close inventory |
+| `J` | Open / close achievements |
+| `K` | Open / close save-code panel |
 | `U` or `Enter` (in inventory) | Use a spare battery |
 | `Esc` | Release pointer lock / close panel |
 
-State is persisted in `localStorage` — position, current level, items collected, batteries, charge.
+State is persisted in `localStorage` — position, current level, items collected, batteries, charge, achievements, walked / wading / playtime stats, and which battery drops you've already grabbed.
 
 ## Engine
 
@@ -65,13 +87,14 @@ State is persisted in `localStorage` — position, current level, items collecte
 - 480×270 internal framebuffer, nearest-neighbour upscaled to fullscreen
 - Infinite world built from 16×16 chunks with LRU eviction, separate cache per level
 - Per-level world generators:
-  - Backrooms: 5×5 maze cells with random doorways
+  - Backrooms: 5×5 maze cells with random doorways, deterministic battery drops keyed by chunk-relative coords (so a picked-up drop never respawns)
   - Pools: 16×16 room generator with corner pillars, door gaps, perimeter walkways and water sectors
 - Player Z elevation with smooth-lerp transitions, camera horizon shift, and step-riser rendering during DDA
 - Tight cone-projected flashlight (~28°) gated by battery charge
 - Procedural textures: warm yellow wallpaper, wet carpet, ceiling tiles, beige pool wall tile, dry walkway, water surface
 - Dynamic point lighting with soft inverse-square falloff (`I / (d² + 2)`), warm-yellow / cool-teal distance fog, vignette, scanlines, chromatic aberration, film grain
 - Web Audio: low hum (58 / 116 Hz + saw), fluorescent whine, filtered-noise footsteps, HRTF-spatialised disembodied steps, scream / jumpscare oscillators
+- Save codes are UTF-8 → base64 of a versioned JSON state plus an FNV-1a checksum suffix; loading validates the checksum before touching live state
 
 ## Horror events
 
@@ -97,6 +120,7 @@ Planned for future releases:
 - **Settings menu** (volume, sensitivity, brightness)
 - **Tile-accurate floor depth** in The Pools so distant water visually recedes below walkway level
 - **More entity behaviours** for the horror events
+- **More achievement tiers** as new levels and entity behaviours land
 
 ## License
 
