@@ -304,14 +304,14 @@ const TEX_PC=makePoolCeiling();
 // ============ Levels ============
 const LEVELS=[
   { name:'BACKROOMS', wallTex:TEX_W, floorTex:TEX_F, ceilTex:TEX_C,
-    ambR:0.035, ambG:0.027, ambB:0.011,
-    fogR:5, fogG:4, fogB:1, fogRate:0.058,
-    lightR:1.0, lightG:0.93, lightB:0.58, lightI:8.0, lightProb:0.38,
+    ambR:0.03, ambG:0.022, ambB:0.009,
+    fogR:4, fogG:3, fogB:1, fogRate:0.062,
+    lightR:1.0, lightG:0.93, lightB:0.58, lightI:1.8, lightProb:0.36,
     ripple:false, moveScale:1.0 },
   { name:'THE POOLS', wallTex:TEX_PW, floorTex:TEX_PD, waterTex:TEX_PF, ceilTex:TEX_PC,
     ambR:0.06, ambG:0.085, ambB:0.075,
     fogR:6, fogG:8, fogB:7, fogRate:0.040,
-    lightR:0.86, lightG:0.96, lightB:0.92, lightI:6.5, lightProb:0.32,
+    lightR:0.86, lightG:0.96, lightB:0.92, lightI:1.6, lightProb:0.32,
     ripple:true, moveScale:0.88 }
 ];
 let LEVEL=0;
@@ -320,6 +320,8 @@ let levelTime=0;
 
 // ============ Player ============
 const player={x:1.5,y:1.5,angle:0,bobT:0,bobOff:0};
+let playerZ=0; // floor elevation under player (0=water-level, 0.4=walkway)
+const STEP_H=0.4;
 let inventory={a:false,b:false,c:false};
 let doorUsed=false;
 let batteries=1;
@@ -567,6 +569,11 @@ function floorTypeAt(mx,my){
   if(!_fcc.floorType) return 0;
   return _fcc.floorType[(my-(cy<<4))*CHUNK + (mx-(cx<<4))];
 }
+// floor elevation per tile: water = 0, walkway = STEP_H
+function floorElevAt(mx,my){
+  if(LEVEL!==1) return 0;
+  return floorTypeAt(mx,my)===0 ? STEP_H : 0;
+}
 // Make sure player isn't stuck inside a wall from old save
 if(isWall(Math.floor(player.x), Math.floor(player.y))){
   if(LEVEL===0){ player.x=1.5; player.y=1.5; }
@@ -603,7 +610,7 @@ function sampleLightAt(wx,wy){
     const L=activeLights[i];
     if(!L.on) continue;
     const dx=wx-L.x,dy=wy-L.y;
-    const d2=dx*dx+dy*dy+0.45;
+    const d2=dx*dx+dy*dy+2.0;
     const att=(L.intensity*L.flick)/d2;
     r+=att*L.r;g+=att*L.g;b+=att*L.b;
   }
@@ -634,7 +641,7 @@ function sample3(wx,wy){
     const L=activeLights[i];
     if(!L.on) continue;
     const dx=wx-L.x,dy=wy-L.y;
-    const d2=dx*dx+dy*dy+0.45;
+    const d2=dx*dx+dy*dy+2.0;
     const att=(L.intensity*L.flick)/d2;
     r+=att*L.r;g+=att*L.g;b+=att*L.b;
   }
@@ -666,7 +673,7 @@ function castFrame(){
   _flDirX=dirX;_flDirY=dirY;
   const planeLen=0.66;
   const planeX=-dirY*planeLen,planeY=dirX*planeLen;
-  const halfH=((H>>1)+player.bobOff)|0;
+  const halfH=((H>>1)+player.bobOff-playerZ*50)|0;
   const camZ=0.5*H;
 
   // ---- Floor + ceiling rows ----
@@ -747,7 +754,10 @@ function castFrame(){
 
   // ---- Walls ----
   for(let x=0;x<W;x++) zBuf[x]=1e9;
+  const stepBuf=[];
+  const useElev=LEVEL===1;
   for(let x=0;x<W;x++){
+    stepBuf.length=0;
     const camX=2*x/W-1;
     const rayX=dirX+planeX*camX, rayY=dirY+planeY*camX;
     let mapX=Math.floor(player.x), mapY=Math.floor(player.y);
@@ -756,8 +766,17 @@ function castFrame(){
     if(rayX<0){stepX=-1;sideX=(player.x-mapX)*deltaX}else{stepX=1;sideX=(mapX+1-player.x)*deltaX}
     if(rayY<0){stepY=-1;sideY=(player.y-mapY)*deltaY}else{stepY=1;sideY=(mapY+1-player.y)*deltaY}
     let hit=0, side=0, steps=0;
+    let curFH = useElev ? floorElevAt(mapX, mapY) : 0;
     while(!hit && steps<200){
       if(sideX<sideY){sideX+=deltaX;mapX+=stepX;side=0}else{sideY+=deltaY;mapY+=stepY;side=1}
+      if(useElev){
+        const newFH = floorElevAt(mapX,mapY);
+        if(newFH !== curFH){
+          const p_now = side===0?(sideX-deltaX):(sideY-deltaY);
+          stepBuf.push(p_now, newFH-curFH, side);
+        }
+        curFH = newFH;
+      }
       if(isWall(mapX,mapY)) hit=1;
       steps++;
     }
@@ -793,6 +812,54 @@ function castFrame(){
       r=r*ifog+fogRf;g=g*ifog+fogGf;b=b*ifog+fogBf;
       if(r>255)r=255;if(g>255)g=255;if(b>255)b=255;
       buf32[y*W+x]=0xff000000|((b|0)<<16)|((g|0)<<8)|(r|0);
+    }
+    // ---- Step risers (Pools elevation) ----
+    if(useElev && stepBuf.length){
+      // Iterate in reverse (closest last so it renders on top)
+      for(let si=stepBuf.length-3; si>=0; si-=3){
+        const sPerp=stepBuf[si], sDh=stepBuf[si+1], sSide=stepBuf[si+2];
+        if(sPerp>=perp) continue;
+        const sLH=Math.floor(H/sPerp);
+        if(sLH<3) continue;
+        const sPx=Math.max(1,Math.floor(sLH*Math.abs(sDh)));
+        const baseY=((sLH>>1)+halfH)|0;
+        const fogS=1-Math.exp(-sPerp*LV.fogRate);
+        const ifogS=1-fogS;
+        const frS=LV.fogR*fogS, fgS=LV.fogG*fogS, fbS=LV.fogB*fogS;
+        const hxS=player.x+sPerp*rayX, hyS=player.y+sPerp*rayY;
+        sample3(hxS,hyS);
+        if(sDh>0){
+          // Step UP — render dark riser face
+          const smS=(sSide===1?0.82:1.0)*0.45;
+          const lRs=_lcR*smS, lGs=_lcG*smS, lBs=_lcB*smS;
+          const wXs=sSide===0?player.y+sPerp*rayY:player.x+sPerp*rayX;
+          let txuS=((wXs-Math.floor(wXs))*TS)|0;
+          if(sSide===0 && rayX>0) txuS=TM-txuS;
+          if(sSide===1 && rayY<0) txuS=TM-txuS;
+          const yS=Math.max(0,baseY-sPx);
+          const yE=Math.min(H,baseY);
+          for(let yy=yS;yy<yE;yy++){
+            const yn=(yy-(baseY-sPx))/sPx;
+            const tyS=(((1-yn)*TS)|0)&TM;
+            const cc=LV.wallTex[tyS*TS+(txuS&TM)];
+            let r0=(cc&0xff)*lRs, g0=((cc>>8)&0xff)*lGs, b0=((cc>>16)&0xff)*lBs;
+            r0=r0*ifogS+frS; g0=g0*ifogS+fgS; b0=b0*ifogS+fbS;
+            if(r0>255)r0=255;if(g0>255)g0=255;if(b0>255)b0=255;
+            buf32[yy*W+x]=0xff000000|((b0|0)<<16)|((g0|0)<<8)|(r0|0);
+          }
+          if(sPerp<zBuf[x]) zBuf[x]=sPerp;
+        } else {
+          // Step DOWN — render thin dark lip line
+          const lipH=Math.max(1,(sPx*0.35)|0);
+          const yE=Math.min(H,baseY);
+          const yS=Math.max(0,baseY-lipH);
+          for(let yy=yS;yy<yE;yy++){
+            const cc=buf32[yy*W+x];
+            const cr=(cc&0xff)>>1, cg=((cc>>8)&0xff)>>1, cb=((cc>>16)&0xff)>>1;
+            buf32[yy*W+x]=0xff000000|(cb<<16)|(cg<<8)|cr;
+          }
+        }
+      }
     }
   }
 
@@ -1805,6 +1872,13 @@ function updateMovement(dt,now){
   // head bob translates to slight vertical offset
   const target = moving ? Math.sin(player.bobT)*0.8 : 0;
   player.bobOff += (target - player.bobOff)*0.18;
+  // Player floor elevation (Pools): smooth-step up/down
+  if(LEVEL===1){
+    const targetZ = floorElevAt(player.x|0, player.y|0);
+    playerZ += (targetZ - playerZ)*0.20;
+  } else {
+    playerZ=0;
+  }
   // Battery drain
   if(flashlight && batteryCharge>0){
     batteryCharge -= dt*0.0083; // ~120s per full battery
