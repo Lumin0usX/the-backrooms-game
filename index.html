@@ -193,11 +193,11 @@ function genChunk(cx,cy){
     const mly=((gy%CELL)+CELL)%CELL;
     const cellCx=Math.floor(gx/CELL), cellCy=Math.floor(gy/CELL);
     const isCenter=(mlx===((CELL/2)|0) && mly===((CELL/2)|0));
-    if(isCenter && h2(cellCx, cellCy, SEED+57)<0.78){
+    if(isCenter && h2(cellCx, cellCy, SEED+57)<0.42){
       lights.push({
         x:gx+0.5, y:gy+0.5,
         r:1.0, g:0.93, b:0.58,
-        intensity:4.5,
+        intensity:7.0,
         phase:h2(gx,gy,SEED+13)*100,
         on:1, flick:1,
         _flickering:false, _flickerEnd:0, _watchRestore:false,
@@ -262,8 +262,8 @@ function gatherLights(){
     }
   }
 }
-const FOG_R2=92,FOG_G2=70,FOG_B2=30;
-const AMB_R=0.95,AMB_G=0.80,AMB_B=0.38;
+const FOG_R2=10,FOG_G2=7,FOG_B2=3;
+const AMB_R=0.08,AMB_G=0.06,AMB_B=0.025;
 let flashlight=true;
 let _flDirX=1,_flDirY=0;
 function sampleLightAt(wx,wy){
@@ -286,7 +286,7 @@ function sampleLightAt(wx,wy){
         const dot=(dx*_flDirX+dy*_flDirY)/d;
         if(dot>0.55){
           const cone=(dot-0.55)*1.818;
-          const att=10/(d2+0.5)*cone;
+          const att=6.5/(d2+0.5)*cone;
           r+=att;g+=att*0.94;b+=att*0.66;
         }
       }
@@ -315,7 +315,7 @@ function sample3(wx,wy){
         const dot=(dx*_flDirX+dy*_flDirY)/d;
         if(dot>0.55){
           const cone=(dot-0.55)*1.818;
-          const att=10/(d2+0.5)*cone;
+          const att=6.5/(d2+0.5)*cone;
           r+=att;g+=att*0.94;b+=att*0.66;
         }
       }
@@ -368,7 +368,7 @@ function castFrame(){
       lightCols[s*3]=_lcR;lightCols[s*3+1]=_lcG;lightCols[s*3+2]=_lcB;
       sfx+=stepX*STRIDE;sfy+=stepY*STRIDE;
     }
-    const fog=1-Math.exp(-rowDist*0.018);
+    const fog=1-Math.exp(-rowDist*0.045);
     const ifog=1-fog;
     const fogRf=FOG_R2*fog, fogGf=FOG_G2*fog, fogBf=FOG_B2*fog;
     let si=0;
@@ -435,7 +435,7 @@ function castFrame(){
     sample3(hitX,hitY);
     const sm = side===1 ? 0.82 : 1.0;
     const lR=_lcR*sm, lG=_lcG*sm, lB=_lcB*sm;
-    const fog=1-Math.exp(-perp*0.018);
+    const fog=1-Math.exp(-perp*0.045);
     const ifog=1-fog;
     const fogRf=FOG_R2*fog, fogGf=FOG_G2*fog, fogBf=FOG_B2*fog;
     const step=TS/lineH;
