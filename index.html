@@ -64,6 +64,36 @@ body{cursor:none}
 @keyframes flk{0%,93%,100%{opacity:1}94%{opacity:0.4}95%{opacity:0.9}96%{opacity:0.5}97%{opacity:1}}
 @keyframes pls{0%,100%{opacity:0.4}50%{opacity:0.9}}
 .cr{position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 140px 32px rgba(35,24,0,0.78);mix-blend-mode:multiply;z-index:2}
+#ach{position:fixed;right:14px;top:38px;width:330px;display:flex;flex-direction:column;gap:8px;pointer-events:none;z-index:11}
+#ach .at{background:linear-gradient(135deg,rgba(20,16,8,0.96),rgba(6,4,1,0.94));border:1px solid #7a5e20;padding:10px 12px;color:#f4d472;font-family:Consolas,monospace;display:flex;gap:10px;align-items:center;box-shadow:0 4px 22px rgba(0,0,0,0.78),inset 0 0 16px rgba(180,140,40,0.18);transform:translateX(120%);opacity:0;transition:transform 0.55s cubic-bezier(0.2,0.7,0.2,1),opacity 0.4s}
+#ach .at.show{transform:translateX(0);opacity:1}
+#ach .at .ic{width:42px;height:42px;border:1px solid #b48a30;background:rgba(60,42,12,0.85);display:flex;align-items:center;justify-content:center;font-size:22px;color:#f4d472;text-shadow:0 0 10px rgba(244,212,114,0.6);flex-shrink:0}
+#ach .at .tx{flex:1;min-width:0}
+#ach .at .lbl{font-size:9px;letter-spacing:0.32em;color:#a08740;margin-bottom:2px}
+#ach .at .nm{font-size:13px;letter-spacing:0.10em;line-height:1.3;color:#f4e6a8}
+#ach .at .ds{font-size:10px;color:#9d8a45;margin-top:2px;letter-spacing:0.04em;font-style:italic;opacity:0.9}
+#savepanel,#achpanel{position:fixed;inset:0;background:rgba(10,7,2,0.92);display:none;align-items:center;justify-content:center;font-family:Consolas,monospace;z-index:10;cursor:default}
+#savepanel.show,#achpanel.show{display:flex}
+.csec{background:rgba(30,21,6,0.6);border:1px solid #4a3818;padding:14px 16px;margin-bottom:14px}
+.csec h3{font-size:11px;letter-spacing:0.36em;color:#cfa860;margin-bottom:8px;font-weight:normal}
+.csec textarea{width:100%;background:rgba(6,4,0,0.7);border:1px solid #4a3818;color:#f4e6a8;font:inherit;font-size:11px;padding:8px;resize:none;letter-spacing:0.03em;line-height:1.45;outline:none;caret-color:#f4d472}
+.csec textarea:focus{border-color:#cfa860}
+.csec .rb{margin-top:10px;display:flex;gap:8px}
+.csec button{background:#3a2a0c;border:1px solid #7a5e20;color:#f4d472;padding:7px 18px;font:inherit;font-size:11px;cursor:pointer;letter-spacing:0.20em;text-transform:uppercase}
+.csec button:hover{background:#5a4218;border-color:#cfa860}
+.csec .nt{font-size:10px;color:#7a6230;letter-spacing:0.16em;margin-top:6px}
+.csec .ms{font-size:10px;letter-spacing:0.14em;margin-top:6px;min-height:13px}
+.csec .ms.ok{color:#9bd070}.csec .ms.er{color:#d05050}
+#achpanel .alist{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;max-height:62vh;overflow-y:auto;padding-right:4px}
+#achpanel .arow{background:rgba(30,21,6,0.65);border:1px solid #3a2a10;padding:9px 11px;display:flex;gap:9px;align-items:center;opacity:0.45}
+#achpanel .arow.got{opacity:1;border-color:#b48a30;background:rgba(54,38,12,0.82)}
+#achpanel .arow .ic{width:36px;height:36px;border:1px solid #3a2a10;background:rgba(6,4,0,0.6);display:flex;align-items:center;justify-content:center;font-size:20px;color:#5a4520;flex-shrink:0}
+#achpanel .arow.got .ic{border-color:#f4d472;color:#f4d472;text-shadow:0 0 8px rgba(244,212,114,0.5);background:rgba(60,42,12,0.85)}
+#achpanel .arow .nm{font-size:12px;letter-spacing:0.07em;color:#7a6230;line-height:1.25}
+#achpanel .arow.got .nm{color:#f4e6a8}
+#achpanel .arow .ds{font-size:9px;color:#5a4720;letter-spacing:0.04em;margin-top:2px;font-style:italic}
+#achpanel .arow.got .ds{color:#9d8a45}
+#achpanel .aprogress{font-size:11px;color:#cfa860;letter-spacing:0.32em;text-align:center;margin-bottom:12px}
 </style>
 </head>
 <body>
@@ -74,7 +104,7 @@ body{cursor:none}
 <div id="scan"></div>
 <div id="chr"></div>
 <div id="sub"></div>
-<div id="hint">WASD / ARROWS &middot; MOUSE LOOK &middot; F flashlight &middot; / console &middot; ESC release</div>
+<div id="hint">WASD / ARROWS &middot; MOUSE LOOK &middot; F flashlight &middot; I inventory &middot; J achievements &middot; K save code &middot; ESC release</div>
 <div id="inv">ITEMS <span class="it" id="iA">[ ] Almond Water</span><span class="it" id="iB">[ ] Battery</span><span class="it" id="iC">[ ] Key</span></div>
 <div id="ltitle"></div>
 <div id="cmdres"></div>
@@ -92,6 +122,35 @@ body{cursor:none}
       <div class="islot" id="slEx"><div class="ic">?</div><div class="nm">Empty</div><div class="st">&mdash;</div></div>
     </div>
     <div class="iftr">I or ESC to close</div>
+  </div>
+</div>
+<div id="ach"></div>
+<div id="savepanel">
+  <div class="iframe">
+    <div class="ihd">SAVE CODES</div>
+    <div class="csec">
+      <h3>YOUR CURRENT SAVE</h3>
+      <textarea id="saveCodeBox" readonly rows="3"></textarea>
+      <div class="rb"><button id="copyCodeBtn">COPY</button><button id="refreshCodeBtn">REFRESH</button></div>
+      <div class="ms" id="saveMsg"></div>
+      <div class="nt">Keep this code somewhere safe. It is your save.</div>
+    </div>
+    <div class="csec">
+      <h3>LOAD A CODE</h3>
+      <textarea id="loadCodeBox" rows="3" placeholder="paste a BR1-... save code here"></textarea>
+      <div class="rb"><button id="loadCodeBtn">LOAD SAVE</button></div>
+      <div class="ms" id="loadMsg"></div>
+      <div class="nt">Loading replaces your current save. There is no undo.</div>
+    </div>
+    <div class="iftr">K or ESC to close</div>
+  </div>
+</div>
+<div id="achpanel">
+  <div class="iframe">
+    <div class="ihd">ACHIEVEMENTS</div>
+    <div class="aprogress" id="achProgress">0 / 10 UNLOCKED</div>
+    <div class="alist" id="achList"></div>
+    <div class="iftr">J or ESC to close</div>
   </div>
 </div>
 <div id="start">
@@ -129,6 +188,18 @@ const slAEl=document.getElementById('slA');
 const slBEl=document.getElementById('slB');
 const slCEl=document.getElementById('slC');
 const useBatBtn=document.getElementById('useBatBtn');
+const achEl=document.getElementById('ach');
+const savepanelEl=document.getElementById('savepanel');
+const achpanelEl=document.getElementById('achpanel');
+const saveCodeBox=document.getElementById('saveCodeBox');
+const loadCodeBox=document.getElementById('loadCodeBox');
+const copyCodeBtn=document.getElementById('copyCodeBtn');
+const refreshCodeBtn=document.getElementById('refreshCodeBtn');
+const loadCodeBtn=document.getElementById('loadCodeBtn');
+const saveMsg=document.getElementById('saveMsg');
+const loadMsg=document.getElementById('loadMsg');
+const achListEl=document.getElementById('achList');
+const achProgressEl=document.getElementById('achProgress');
 const grainC=document.getElementById('grain');
 const grainCtx=grainC.getContext('2d');
 function resize(){grainC.width=Math.min(window.innerWidth,1600);grainC.height=Math.min(window.innerHeight,1000)}
@@ -326,6 +397,12 @@ let inventory={a:false,b:false,c:false};
 let doorUsed=false;
 let batteries=1;
 let batteryCharge=1.0;
+const collectedBats=new Set(); // chunk-relative battery drops the player has picked up: "cx,cy,lx,ly"
+const achievements={0:0,1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0};
+const stats={
+  tilesWalked:0, waterTiles:0, playTime:0, eventCount:0,
+  poolsDarkTime:0, maxBatteries:1, maxDist:0
+};
 try{
   const s=JSON.parse(localStorage.getItem('br_save')||'null');
   if(s&&isFinite(s.x)){player.x=s.x;player.y=s.y;player.angle=s.a}
@@ -334,8 +411,31 @@ try{
   if(s&&s.dr){doorUsed=true}
   if(s&&typeof s.bt==='number') batteries=Math.max(0,s.bt|0);
   if(s&&typeof s.bc==='number') batteryCharge=Math.max(0,Math.min(1,+s.bc));
+  if(s&&s.ach) for(const k in s.ach) achievements[k]=s.ach[k]?1:0;
+  if(s&&s.st){
+    stats.tilesWalked=+s.st.tw||0;
+    stats.waterTiles=+s.st.wt||0;
+    stats.playTime=+s.st.pt||0;
+    stats.eventCount=s.st.ec|0;
+    stats.poolsDarkTime=+s.st.pd||0;
+    stats.maxBatteries=s.st.mb|0||1;
+    stats.maxDist=+s.st.md||0;
+  }
+  if(s&&Array.isArray(s.cb)) for(const k of s.cb) collectedBats.add(k);
 }catch(e){}
-function saveState(){try{localStorage.setItem('br_save',JSON.stringify({x:player.x,y:player.y,a:player.angle,lvl:LEVEL,inv:inventory,dr:doorUsed,bt:batteries,bc:+batteryCharge.toFixed(3)}))}catch(e){}}
+function saveState(){
+  try{
+    const cb=[];
+    let n=0; for(const k of collectedBats){ cb.push(k); if(++n>=600) break; }
+    localStorage.setItem('br_save',JSON.stringify({
+      x:player.x,y:player.y,a:player.angle,lvl:LEVEL,inv:inventory,dr:doorUsed,
+      bt:batteries,bc:+batteryCharge.toFixed(3),
+      ach:achievements,
+      st:{tw:+stats.tilesWalked.toFixed(0),wt:+stats.waterTiles.toFixed(0),pt:+stats.playTime.toFixed(0),ec:stats.eventCount,pd:+stats.poolsDarkTime.toFixed(0),mb:stats.maxBatteries,md:+stats.maxDist.toFixed(0)},
+      cb
+    }))
+  }catch(e){}
+}
 setInterval(saveState,3500);
 
 // ============ World / chunks ============
@@ -436,6 +536,7 @@ function genChunk(cx,cy){
   const tiles=new Uint8Array(CHUNK*CHUNK);
   const floorType=new Uint8Array(CHUNK*CHUNK);
   const lights=[];
+  const bats=[];
   for(let ly=0;ly<CHUNK;ly++)for(let lx=0;lx<CHUNK;lx++){
     const gx=cx*CHUNK+lx, gy=cy*CHUNK+ly;
     tiles[ly*CHUNK+lx]=isWallGen(gx,gy);
@@ -443,20 +544,12 @@ function genChunk(cx,cy){
   }
   if(cx===0&&cy===0){
     if(LEVEL===0){
-      // Spawn room
+      // Modest spawn room — door visible nearby, items are far away now
       for(let dy=1;dy<=4;dy++)for(let dx=1;dx<=4;dx++) tiles[dy*CHUNK+dx]=0;
-      // East corridor toward Almond Water (item A at 13.5,2.5) and door (5.5,1.5)
-      for(let dx=1;dx<=14;dx++){ tiles[1*CHUNK+dx]=0; tiles[2*CHUNK+dx]=0; tiles[3*CHUNK+dx]=0; }
-      // South corridor toward Battery (item B at 2.5,13.5)
-      for(let dy=1;dy<=14;dy++){ tiles[dy*CHUNK+1]=0; tiles[dy*CHUNK+2]=0; tiles[dy*CHUNK+3]=0; }
-      // Diagonal path toward Brass Key (item C at 12.5,12.5)
-      for(let d=4;d<=13;d++){
-        tiles[d*CHUNK+d]=0;
-        if(d+1<CHUNK) tiles[(d+1)*CHUNK+d]=0;
-        if(d+1<CHUNK) tiles[d*CHUNK+(d+1)]=0;
-      }
-      // Open small chamber around item C
-      for(let dy=11;dy<=13;dy++)for(let dx=11;dx<=13;dx++) tiles[dy*CHUNK+dx]=0;
+      // Short east corridor so the door + spawn isn't a dead-end
+      for(let dx=1;dx<=7;dx++){ tiles[1*CHUNK+dx]=0; tiles[2*CHUNK+dx]=0; tiles[3*CHUNK+dx]=0; }
+      // Short south stub for variety
+      for(let dy=1;dy<=7;dy++){ tiles[dy*CHUNK+1]=0; tiles[dy*CHUNK+2]=0; tiles[dy*CHUNK+3]=0; }
     } else {
       // Pools: shape spawn room so player starts on dry walkway, pool visible ahead
       for(let ly=0;ly<CHUNK;ly++)for(let lx=0;lx<CHUNK;lx++){
@@ -528,7 +621,41 @@ function genChunk(cx,cy){
       }
     }
   }
-  return {tiles,floorType,lights,touched:performance.now()};
+  // Safety carve around far item positions so they're reachable in their cells
+  if(LEVEL===0){
+    const ITEM_TILES=[[77,2],[2,77],[77,77]];
+    for(let i=0;i<ITEM_TILES.length;i++){
+      const ix=ITEM_TILES[i][0], iy=ITEM_TILES[i][1];
+      if((ix>>4)===cx && (iy>>4)===cy){
+        const lx=ix-cx*CHUNK, ly=iy-cy*CHUNK;
+        tiles[ly*CHUNK+lx]=0;
+        if(lx+1<CHUNK) tiles[ly*CHUNK+lx+1]=0;
+        if(lx-1>=0) tiles[ly*CHUNK+lx-1]=0;
+        if(ly+1<CHUNK) tiles[(ly+1)*CHUNK+lx]=0;
+        if(ly-1>=0) tiles[(ly-1)*CHUNK+lx]=0;
+      }
+    }
+  }
+  // Rare battery drops scattered in Backrooms — not in spawn chunk
+  if(LEVEL===0 && !(cx===0&&cy===0)){
+    const dist=Math.abs(cx)+Math.abs(cy);
+    // probability scales up with distance from spawn (gets denser as you wander further)
+    const baseProb=Math.min(0.22, 0.06+dist*0.012);
+    if(h2(cx, cy, SEED+701)<baseProb){
+      for(let tries=0;tries<14;tries++){
+        const dlx=1+((h2(cx,cy,SEED+710+tries)*(CHUNK-2))|0);
+        const dly=1+((h2(cx,cy,SEED+730+tries)*(CHUNK-2))|0);
+        if(tiles[dly*CHUNK+dlx]===0){
+          const key=cx+","+cy+","+dlx+","+dly;
+          if(!collectedBats.has(key)){
+            bats.push({x:cx*CHUNK+dlx+0.5, y:cy*CHUNK+dly+0.5, key:key});
+          }
+          break;
+        }
+      }
+    }
+  }
+  return {tiles,floorType,lights,bats,touched:performance.now()};
 }
 function getChunk(cx,cy){
   const k=ckey(cx,cy);
@@ -928,9 +1055,9 @@ function drawEntity(dirX,dirY,planeX,planeY,halfH){
 
 // ============ Items, Door, Transition ============
 const items=[
-  {id:'a', name:'Almond Water', x:13.5, y:2.5,  r:1.0,  g:0.96, b:0.55, found:!!inventory.a},
-  {id:'b', name:'Old Battery',  x:2.5,  y:13.5, r:0.45, g:0.95, b:0.55, found:!!inventory.b},
-  {id:'c', name:'Brass Key',    x:12.5, y:12.5, r:1.0,  g:0.72, b:0.30, found:!!inventory.c}
+  {id:'a', name:'Almond Water', x:77.5, y:2.5,  r:1.0,  g:0.96, b:0.55, found:!!inventory.a},
+  {id:'b', name:'Old Battery',  x:2.5,  y:77.5, r:0.45, g:0.95, b:0.55, found:!!inventory.b},
+  {id:'c', name:'Brass Key',    x:77.5, y:77.5, r:1.0,  g:0.72, b:0.30, found:!!inventory.c}
 ];
 const door={x:5.5, y:1.5};
 function invCount(){return (inventory.a?1:0)+(inventory.b?1:0)+(inventory.c?1:0)}
@@ -993,6 +1120,208 @@ function useBattery(){
 }
 useBatBtn.addEventListener('click', useBattery);
 updateInvHUD();
+
+// ============ Achievements ============
+const ACHIEVEMENTS=[
+  {id:0, name:'First Glimpse',   desc:'Witness your first anomaly',                       icon:'?'},
+  {id:1, name:'Three Trinkets',  desc:'Collect all 3 items in the Backrooms',             icon:'*'},
+  {id:2, name:'Threshold',       desc:'Descend through the door into The Pools',          icon:'v'},
+  {id:3, name:'Wandering Soul',  desc:'Walk 5,000 tiles total',                           icon:'~'},
+  {id:4, name:'In the Black',    desc:'Spend 10 minutes in The Pools with no flashlight', icon:'.'},
+  {id:5, name:'Hydrophile',      desc:'Wade through 1,000 tiles of water',                icon:'='},
+  {id:6, name:'Pack Rat',        desc:'Hold 8 spare batteries at the same time',          icon:'+'},
+  {id:7, name:'Witness',         desc:'Trigger 30 horror events',                         icon:'!'},
+  {id:8, name:'Far From Home',   desc:'Reach a tile 200 units from origin',               icon:'#'},
+  {id:9, name:'The Sleeping',    desc:'Accumulate 2 hours of playtime',                   icon:'z'}
+];
+let _achToastCt=0;
+function unlockAch(id){
+  if(achievements[id]) return;
+  achievements[id]=1;
+  saveState();
+  rebuildAchPanel();
+  // toast
+  const el=document.createElement('div');
+  el.className='at';
+  const A=ACHIEVEMENTS[id];
+  el.innerHTML='<div class="ic">'+A.icon+'</div><div class="tx"><div class="lbl">ACHIEVEMENT UNLOCKED</div><div class="nm">'+A.name+'</div><div class="ds">'+A.desc+'</div></div>';
+  achEl.appendChild(el);
+  _achToastCt++;
+  // animate in
+  requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ el.classList.add('show') }) });
+  if(typeof ac!=='undefined' && ac){
+    tone(880,0.10,0.10,'sine');
+    setTimeout(()=>tone(1320,0.12,0.08,'triangle'),100);
+    setTimeout(()=>tone(1760,0.14,0.06,'sine'),220);
+  }
+  setTimeout(()=>{ el.classList.remove('show') }, 4800);
+  setTimeout(()=>{ if(el.parentNode) el.parentNode.removeChild(el); _achToastCt=Math.max(0,_achToastCt-1) }, 5500);
+}
+function rebuildAchPanel(){
+  let unlocked=0;
+  let html='';
+  for(let i=0;i<ACHIEVEMENTS.length;i++){
+    const A=ACHIEVEMENTS[i];
+    const got=!!achievements[i];
+    if(got) unlocked++;
+    html+='<div class="arow'+(got?' got':'')+'"><div class="ic">'+A.icon+'</div><div class="tx"><div class="nm">'+A.name+'</div><div class="ds">'+(got?A.desc:'???')+'</div></div></div>';
+  }
+  achListEl.innerHTML=html;
+  achProgressEl.textContent=unlocked+' / '+ACHIEVEMENTS.length+' UNLOCKED';
+}
+rebuildAchPanel();
+function checkAch(){
+  if(!achievements[0] && stats.eventCount>=1) unlockAch(0);
+  if(!achievements[1] && invCount()===3) unlockAch(1);
+  if(!achievements[2] && LEVEL===1) unlockAch(2);
+  if(!achievements[3] && stats.tilesWalked>=5000) unlockAch(3);
+  if(!achievements[4] && stats.poolsDarkTime>=600) unlockAch(4);
+  if(!achievements[5] && stats.waterTiles>=1000) unlockAch(5);
+  if(!achievements[6] && stats.maxBatteries>=8) unlockAch(6);
+  if(!achievements[7] && stats.eventCount>=30) unlockAch(7);
+  if(!achievements[8] && stats.maxDist>=200) unlockAch(8);
+  if(!achievements[9] && stats.playTime>=7200) unlockAch(9);
+}
+
+// ============ Save Codes ============
+function _u8ToB64(s){
+  // utf-8 safe base64
+  return btoa(unescape(encodeURIComponent(s))).replace(/=+$/,'');
+}
+function _b64ToU8(b){
+  return decodeURIComponent(escape(atob(b)));
+}
+function _ck(s){
+  let h=2166136261>>>0;
+  for(let i=0;i<s.length;i++){ h=(h^s.charCodeAt(i))*16777619>>>0 }
+  return h.toString(36).slice(0,6);
+}
+function makeSaveCode(){
+  const cbArr=[];
+  let n=0; for(const k of collectedBats){ cbArr.push(k); if(++n>=400) break; }
+  const s={
+    v:1,
+    x:+player.x.toFixed(2), y:+player.y.toFixed(2), a:+player.angle.toFixed(3),
+    lvl:LEVEL, inv:inventory, dr:doorUsed,
+    bt:batteries, bc:+batteryCharge.toFixed(3),
+    ach:achievements,
+    st:{tw:+stats.tilesWalked.toFixed(0),wt:+stats.waterTiles.toFixed(0),pt:+stats.playTime.toFixed(0),ec:stats.eventCount,pd:+stats.poolsDarkTime.toFixed(0),mb:stats.maxBatteries,md:+stats.maxDist.toFixed(0)},
+    cb:cbArr
+  };
+  const json=JSON.stringify(s);
+  return 'BR1-'+_u8ToB64(json)+'-'+_ck(json);
+}
+function applySaveCode(code){
+  try{
+    const m=/^BR1-([A-Za-z0-9+/]+)-([a-z0-9]{1,8})$/.exec((code||'').trim());
+    if(!m) return {ok:false, err:'invalid code format'};
+    let json;
+    try{ json=_b64ToU8(m[1]) }catch(e){ return {ok:false, err:'malformed base64'} }
+    if(_ck(json)!==m[2]) return {ok:false, err:'corrupted code (checksum mismatch)'};
+    const s=JSON.parse(json);
+    player.x=+s.x; player.y=+s.y; player.angle=+s.a;
+    LEVEL=s.lvl|0; LV=LEVELS[LEVEL]||LEVELS[0];
+    inventory.a=!!(s.inv&&s.inv.a); inventory.b=!!(s.inv&&s.inv.b); inventory.c=!!(s.inv&&s.inv.c);
+    items[0].found=inventory.a; items[1].found=inventory.b; items[2].found=inventory.c;
+    doorUsed=!!s.dr; batteries=Math.max(0,s.bt|0); batteryCharge=Math.max(0,Math.min(1,+s.bc));
+    for(const k in achievements) achievements[k]=0;
+    if(s.ach) for(const k in s.ach) achievements[k]=s.ach[k]?1:0;
+    stats.tilesWalked=stats.waterTiles=stats.playTime=stats.eventCount=stats.poolsDarkTime=stats.maxDist=0;
+    stats.maxBatteries=Math.max(1,batteries);
+    if(s.st){
+      stats.tilesWalked=+s.st.tw||0;
+      stats.waterTiles=+s.st.wt||0;
+      stats.playTime=+s.st.pt||0;
+      stats.eventCount=s.st.ec|0;
+      stats.poolsDarkTime=+s.st.pd||0;
+      stats.maxBatteries=s.st.mb|0||stats.maxBatteries;
+      stats.maxDist=+s.st.md||0;
+    }
+    collectedBats.clear();
+    if(Array.isArray(s.cb)) for(const k of s.cb) collectedBats.add(k);
+    chunks.clear(); chunkOrder.length=0; activeLights.length=0;
+    _wccx=1e9; _wccy=1e9; _fccx=1e9; _fccy=1e9;
+    const pcx=Math.floor(player.x/CHUNK), pcy=Math.floor(player.y/CHUNK);
+    for(let dx=-4;dx<=4;dx++) for(let dy=-4;dy<=4;dy++) getChunk(pcx+dx,pcy+dy);
+    if(isWall(Math.floor(player.x), Math.floor(player.y))){
+      if(LEVEL===0){ player.x=1.5; player.y=1.5; } else { player.x=8.5; player.y=8.5; }
+    }
+    entity.active=false;
+    levelTime=0;
+    saveState();
+    updateInvHUD();
+    rebuildAchPanel();
+    return {ok:true, level:LEVELS[LEVEL].name};
+  }catch(e){
+    return {ok:false, err:'failed to decode: '+e.message};
+  }
+}
+let savepanelOpen=false, achpanelOpen=false;
+function openSavePanel(){
+  if(savepanelOpen) return;
+  savepanelOpen=true;
+  saveCodeBox.value=makeSaveCode();
+  loadCodeBox.value='';
+  saveMsg.textContent=''; saveMsg.className='ms';
+  loadMsg.textContent=''; loadMsg.className='ms';
+  savepanelEl.classList.add('show');
+  if(document.pointerLockElement) document.exitPointerLock?.();
+  for(const k in keys) keys[k]=0;
+}
+function closeSavePanel(){
+  if(!savepanelOpen) return;
+  savepanelOpen=false;
+  savepanelEl.classList.remove('show');
+  if(started) view.requestPointerLock?.();
+}
+function openAchPanel(){
+  if(achpanelOpen) return;
+  achpanelOpen=true;
+  rebuildAchPanel();
+  achpanelEl.classList.add('show');
+  if(document.pointerLockElement) document.exitPointerLock?.();
+  for(const k in keys) keys[k]=0;
+}
+function closeAchPanel(){
+  if(!achpanelOpen) return;
+  achpanelOpen=false;
+  achpanelEl.classList.remove('show');
+  if(started) view.requestPointerLock?.();
+}
+copyCodeBtn.addEventListener('click', ()=>{
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(saveCodeBox.value).then(
+        ()=>{ saveMsg.textContent='copied to clipboard'; saveMsg.className='ms ok' },
+        ()=>{ saveCodeBox.select(); document.execCommand('copy'); saveMsg.textContent='copied (fallback)'; saveMsg.className='ms ok' }
+      );
+    } else {
+      saveCodeBox.select();
+      document.execCommand('copy');
+      saveMsg.textContent='copied to clipboard';
+      saveMsg.className='ms ok';
+    }
+  }catch(e){
+    saveMsg.textContent='copy failed — select manually'; saveMsg.className='ms er';
+  }
+});
+refreshCodeBtn.addEventListener('click', ()=>{
+  saveCodeBox.value=makeSaveCode();
+  saveMsg.textContent='code regenerated for current state';
+  saveMsg.className='ms ok';
+});
+loadCodeBtn.addEventListener('click', ()=>{
+  const res=applySaveCode(loadCodeBox.value);
+  if(res.ok){
+    loadMsg.textContent='save loaded — '+res.level;
+    loadMsg.className='ms ok';
+    saveCodeBox.value=makeSaveCode();
+    setTimeout(closeSavePanel, 1100);
+  } else {
+    loadMsg.textContent=res.err||'failed to load';
+    loadMsg.className='ms er';
+  }
+});
 let _doorMsgAt=0;
 function checkPickupsAndDoor(now){
   if(LEVEL!==0||transition.active) return;
@@ -1009,6 +1338,26 @@ function checkPickupsAndDoor(now){
       tone(700+i*180, 0.18, 0.16, 'sine');
       tone(1200+i*200, 0.22, 0.10, 'triangle');
       saveState();
+    }
+  }
+  // Battery drops in nearby chunks
+  const pcx=Math.floor(player.x/CHUNK), pcy=Math.floor(player.y/CHUNK);
+  for(let cdx=-2;cdx<=2;cdx++)for(let cdy=-2;cdy<=2;cdy++){
+    const c=getChunk(pcx+cdx,pcy+cdy);
+    if(!c.bats) continue;
+    for(let i=0;i<c.bats.length;i++){
+      const b=c.bats[i];
+      if(collectedBats.has(b.key)) continue;
+      const dx=b.x-player.x, dy=b.y-player.y;
+      if(dx*dx+dy*dy<0.55){
+        collectedBats.add(b.key);
+        batteries++;
+        if(batteries>stats.maxBatteries) stats.maxBatteries=batteries;
+        showSub(`Picked up: Spare Battery  (x${batteries})`, 2.4);
+        tone(880, 0.10, 0.10, 'sine'); tone(1320, 0.14, 0.06, 'triangle');
+        updateInvHUD();
+        saveState();
+      }
     }
   }
   if(!doorUsed){
@@ -1085,7 +1434,56 @@ function drawBillboards(dirX,dirY,planeX,planeY,halfH){
   for(let i=0;i<items.length;i++){
     if(!items[i].found) drawItemSprite(items[i], dirX,dirY,planeX,planeY,halfH);
   }
+  // Battery drops in nearby chunks
+  const pcx=Math.floor(player.x/CHUNK), pcy=Math.floor(player.y/CHUNK);
+  for(let dx=-2;dx<=2;dx++)for(let dy=-2;dy<=2;dy++){
+    const c=getChunk(pcx+dx,pcy+dy);
+    if(!c.bats) continue;
+    for(let i=0;i<c.bats.length;i++){
+      const b=c.bats[i];
+      if(collectedBats.has(b.key)) continue;
+      drawBatterySprite(b, dirX,dirY,planeX,planeY,halfH);
+    }
+  }
   if(!doorUsed) drawDoorSprite(dirX,dirY,planeX,planeY,halfH);
+}
+function drawBatterySprite(b, dirX,dirY,planeX,planeY,halfH){
+  const dx=b.x-player.x, dy=b.y-player.y;
+  const invDet=1/(planeX*dirY-dirX*planeY);
+  const tX=invDet*(dirY*dx-dirX*dy);
+  const tY=invDet*(-planeY*dx+planeX*dy);
+  if(tY<=0.15) return;
+  const screenX=Math.floor((W>>1)*(1+tX/tY));
+  const rad=Math.max(2, Math.floor(Math.abs(H/tY)*0.12));
+  if(rad>110) return;
+  const cyB=halfH;
+  const pulse=0.78+0.22*Math.sin(performance.now()*0.006 + (b.key.length|0));
+  const r2=rad*rad;
+  const xs=Math.max(0,screenX-rad), xe=Math.min(W,screenX+rad);
+  const ys=Math.max(0,cyB-rad), ye=Math.min(H,cyB+rad);
+  const ir=110, ig=240, ib=160;
+  for(let y=ys;y<ye;y++){
+    const dyh=y-cyB;
+    for(let x=xs;x<xe;x++){
+      const dxh=x-screenX;
+      const d2p=dxh*dxh+dyh*dyh;
+      if(d2p>=r2) continue;
+      const dn=d2p/r2;
+      const fall=1-dn;
+      const intensity=fall*fall*pulse;
+      const occluded=tY>zBuf[x];
+      const a=Math.min(1, intensity*(occluded?0.30:1.7));
+      if(a<0.01) continue;
+      const idx=y*W+x;
+      const c=buf32[idx];
+      const cr=c&0xff, cg=(c>>8)&0xff, cb=(c>>16)&0xff;
+      let nr=cr*(1-a*0.5)+ir*a;
+      let ng=cg*(1-a*0.5)+ig*a;
+      let nb=cb*(1-a*0.5)+ib*a;
+      if(nr>255)nr=255;if(ng>255)ng=255;if(nb>255)nb=255;
+      buf32[idx]=0xff000000|((nb|0)<<16)|((ng|0)<<8)|(nr|0);
+    }
+  }
 }
 function drawItemSprite(it, dirX,dirY,planeX,planeY,halfH){
   const dx=it.x-player.x, dy=it.y-player.y;
@@ -1521,6 +1919,16 @@ addEventListener('keydown',e=>{
     else if(e.code==='KeyU'||e.code==='Enter'){e.preventDefault(); useBattery()}
     return;
   }
+  if(achpanelOpen){
+    if(e.code==='KeyJ'||e.code==='Escape'){e.preventDefault(); closeAchPanel()}
+    return;
+  }
+  if(savepanelOpen){
+    // Let typing flow inside the textareas; only K outside textarea or Escape closes it
+    if(e.code==='Escape'){e.preventDefault(); closeSavePanel(); return}
+    if(e.code==='KeyK' && e.target!==loadCodeBox && e.target!==saveCodeBox){e.preventDefault(); closeSavePanel()}
+    return;
+  }
   if(e.code==='Slash' && !cmdOpen && started){
     e.preventDefault();
     openCmd();
@@ -1528,6 +1936,8 @@ addEventListener('keydown',e=>{
   }
   if(cmdOpen) return;
   if(e.code==='KeyI' && started){e.preventDefault(); openInv(); return}
+  if(e.code==='KeyJ' && started){e.preventDefault(); openAchPanel(); return}
+  if(e.code==='KeyK' && started){e.preventDefault(); openSavePanel(); return}
   keys[e.code]=1;
   if(e.code==='KeyF'){
     if(batteryCharge<=0 && !flashlight){
@@ -1539,7 +1949,7 @@ addEventListener('keydown',e=>{
     }
   }
 });
-addEventListener('keyup',e=>{ if(cmdOpen||invOpen) return; keys[e.code]=0 });
+addEventListener('keyup',e=>{ if(cmdOpen||invOpen||savepanelOpen||achpanelOpen) return; keys[e.code]=0 });
 let pointerLocked=false;
 let started=false;
 function tryLock(){
@@ -1550,7 +1960,7 @@ function tryLock(){
     if(LEVEL===0){
       setTimeout(()=>{showSub("the hum never stops.",3500)},7200);
       setTimeout(()=>{if(Math.random()<0.7) showSub("you've been here before.",3500)},32000);
-      setTimeout(()=>{showSub("Find 3 items to unlock the door.",4200)},2400);
+      setTimeout(()=>{showSub("3 items are hidden somewhere far. find them to unlock the door.",4600)},2400);
     } else {
       ltitleEl.className='pools show';
       ltitleEl.textContent='THE POOLS';
@@ -1770,7 +2180,7 @@ function tryEvent(now){
   const elapsed=(now-events.startTime)/1000;
   events.escalation=Math.min(1, elapsed/200);
   if(events.silhouetteShown===0 && elapsed>4 && elapsed<11){
-    fireSilhouette(true); return;
+    fireSilhouette(true); stats.eventCount++; return;
   }
   const baseProb=0.32 + events.escalation*0.4;
   if(Math.random()>baseProb) return;
@@ -1789,7 +2199,7 @@ function tryEvent(now){
   ];
   let total=0; for(const c of choices) total+=c.w;
   let r=Math.random()*total;
-  for(const c of choices){r-=c.w; if(r<=0){c.fn(); break}}
+  for(const c of choices){r-=c.w; if(r<=0){c.fn(); stats.eventCount++; break}}
 }
 function tickLightsAndEvents(now){
   if(entity.active && now>entity.hideAt) entity.active=false;
@@ -1860,9 +2270,14 @@ function updateMovement(dt,now){
   const moving=len>0.01;
   if(moving){
     mx/=len; my/=len;
+    const px0=player.x, py0=player.y;
     const nx=player.x+mx*speed*dt;
     const ny=player.y+my*speed*dt;
     tryMove(nx,ny);
+    const adx=player.x-px0, ady=player.y-py0;
+    const stepDist=Math.sqrt(adx*adx+ady*ady);
+    stats.tilesWalked += stepDist;
+    if(LEVEL===1 && floorTypeAt(player.x|0, player.y|0)===1) stats.waterTiles += stepDist;
     player.bobT += dt*9*LV.moveScale;
     const stepGap = LEVEL===1 ? 560 : 410;
     if(now-lastFoot>stepGap){ footstep(LEVEL===1?0.18:0.12, LEVEL===1?0.6:1); lastFoot=now; }
@@ -1888,6 +2303,13 @@ function updateMovement(dt,now){
     }
     updateFlBarHUD();
   }
+  // Stats / achievement tracking
+  stats.playTime += dt;
+  const dorig=Math.sqrt(player.x*player.x+player.y*player.y);
+  if(dorig>stats.maxDist) stats.maxDist=dorig;
+  if(LEVEL===1 && (!flashlight || batteryCharge<=0)) stats.poolsDarkTime += dt;
+  if(batteries>stats.maxBatteries) stats.maxBatteries=batteries;
+  checkAch();
   checkPickupsAndDoor(now);
 }
 
