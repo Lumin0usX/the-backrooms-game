@@ -1,11 +1,10 @@
 # The Backrooms
 
-> **Status: BETA** — this is an early build. Right now you can only walk around the procedural maze and experience atmosphere / horror events. The following are **not yet implemented**:
+> **Status: BETA** — playable, but rough edges remain. Core loop now works: explore the Backrooms, collect 3 items, unlock the door, descend into The Pools.
 >
-> - Inventory & Resource Management (items, batteries, sanity, stamina)
-> - Progression System (objectives, levels, exits between Backrooms levels, save points beyond raw position)
+> Still missing: sanity / stamina meters, additional Backrooms levels, audio mute UI toggle, settings menu.
 >
-> Expect rough edges. Feedback and PRs welcome.
+> Feedback and PRs welcome.
 
 A psychological-horror Backrooms game in a single self-contained HTML file. No dependencies, no assets — everything (textures, audio, world) is generated procedurally at runtime.
 
@@ -13,15 +12,39 @@ A psychological-horror Backrooms game in a single self-contained HTML file. No d
 
 Or download and open `index.html` locally in any modern browser.
 
-## Engine
+## Levels
 
-- DDA raycaster with textured walls + per-row floor & ceiling casting
-- 480×270 internal framebuffer, nearest-neighbour upscaled to fullscreen
-- Infinite world built from 16×16 chunks with LRU eviction
-- Maze-style room layout (5×5 cells with random doorways + occasional openings) seeded by value-noise / fBm
-- Procedural wallpaper, wet carpet and ceiling-tile textures sampled from typed arrays
-- Dynamic point lighting with inverse-square falloff, warm-yellow distance haze, vignette, scanlines and film grain
-- Web Audio synthesised low hum (58/116 Hz + saw), fluorescent whine, filtered-noise footsteps, HRTF-spatialised disembodied steps, scream/jumpscare oscillators
+### Level 0 — The Backrooms
+- Endless yellow-wallpaper maze, damp carpet, fluorescent buzz
+- Three collectible items hidden in the maze:
+  - **Almond Water** (down the east corridor)
+  - **Old Battery** (down the south corridor)
+  - **Brass Key** (deeper, in the diagonal chamber)
+- A locked **exit door** near spawn — pick up all 3 to unlock
+- Walk into the door once unlocked → fade transition → descend to The Pools
+
+### Level 1 — The Pools
+- Endless abandoned indoor aquatic complex with **real elevation differences**
+- Per-room layouts: dry corridors, half-flooded chambers, central pools with walkway perimeters, fully-flooded rooms
+- Walk **up and down** between water (low) and dry walkway (raised by ~0.4 units)
+- Visible step risers at every water/walkway boundary
+- Wading in water slows movement to 66 %
+- Cool-tinted dim fluorescent lighting, pale beige tile walls, teal water with subtle ripples
+- Square support pillars, low and high ceilings, repetitive geometry — designed for liminal disorientation
+
+## Inventory & Battery
+
+- Press **`I`** to open the inventory panel
+- Slots:
+  - Almond Water (status)
+  - Old Battery (status)
+  - Brass Key (status)
+  - **Spare Batteries** — count + `USE` button
+  - **Flashlight** — live charge bar
+- Flashlight drains its battery roughly every 2 minutes of use
+- When the charge hits 0, the flashlight cuts out; install a spare battery to refill it
+- A persistent HUD in the lower-left shows the charge bar + spare count
+- Inventory state, battery count and charge all persist in `localStorage`
 
 ## Controls
 
@@ -30,9 +53,25 @@ Or download and open `index.html` locally in any modern browser.
 | `W` `A` `S` `D` / Arrows | Move |
 | Mouse | Look |
 | `F` | Toggle flashlight |
-| `Esc` | Release pointer lock |
+| `I` | Open / close inventory |
+| `U` or `Enter` (in inventory) | Use a spare battery |
+| `Esc` | Release pointer lock / close panel |
 
-Position is persisted in `localStorage`.
+State is persisted in `localStorage` — position, current level, items collected, batteries, charge.
+
+## Engine
+
+- DDA raycaster with textured walls + per-row floor & ceiling casting (per-pixel water-vs-walkway texture switching in The Pools)
+- 480×270 internal framebuffer, nearest-neighbour upscaled to fullscreen
+- Infinite world built from 16×16 chunks with LRU eviction, separate cache per level
+- Per-level world generators:
+  - Backrooms: 5×5 maze cells with random doorways
+  - Pools: 16×16 room generator with corner pillars, door gaps, perimeter walkways and water sectors
+- Player Z elevation with smooth-lerp transitions, camera horizon shift, and step-riser rendering during DDA
+- Tight cone-projected flashlight (~28°) gated by battery charge
+- Procedural textures: warm yellow wallpaper, wet carpet, ceiling tiles, beige pool wall tile, dry walkway, water surface
+- Dynamic point lighting with soft inverse-square falloff (`I / (d² + 2)`), warm-yellow / cool-teal distance fog, vignette, scanlines, chromatic aberration, film grain
+- Web Audio: low hum (58 / 116 Hz + saw), fluorescent whine, filtered-noise footsteps, HRTF-spatialised disembodied steps, scream / jumpscare oscillators
 
 ## Horror events
 
@@ -53,8 +92,11 @@ Subtle, randomised, ambiguous. Cooldowns prevent overlap. Frequency slowly escal
 
 Planned for future releases:
 
-- **Inventory & Resource Management** — pickup-able items, flashlight battery, sanity / stamina meters
-- **Progression System** — objectives, multi-level structure (Level 0 → Level 1 → …), discoverable exits, persistent run state
+- **Sanity / stamina meters** to round out the resource layer
+- **More levels beyond The Pools** (Level 2 etc.) with discoverable exits
+- **Settings menu** (volume, sensitivity, brightness)
+- **Tile-accurate floor depth** in The Pools so distant water visually recedes below walkway level
+- **More entity behaviours** for the horror events
 
 ## License
 
