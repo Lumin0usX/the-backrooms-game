@@ -1,5 +1,12 @@
 # The Backrooms
 
+> **Status: BETA** — this is an early build. Right now you can only walk around the procedural maze and experience atmosphere / horror events. The following are **not yet implemented**:
+>
+> - Inventory & Resource Management (items, batteries, sanity, stamina)
+> - Progression System (objectives, levels, exits between Backrooms levels, save points beyond raw position)
+>
+> Expect rough edges. Feedback and PRs welcome.
+
 A psychological-horror Backrooms game in a single self-contained HTML file. No dependencies, no assets — everything (textures, audio, world) is generated procedurally at runtime.
 
 **[Play in browser](./index.html)** — just open `index.html` in any modern browser.
@@ -39,3 +46,10 @@ Subtle, randomised, ambiguous. Cooldowns prevent overlap. Frequency slowly escal
 - Spatial anomalies (a door that wasn't there, reverts when not observed)
 - A single distant scream per session
 - An extremely rare jumpscare (<1% per minute)
+
+## Roadmap
+
+Planned for future releases:
+
+- **Inventory & Resource Management** — pickup-able items, flashlight battery, sanity / stamina meters
+- **Progression System** — objectives, multi-level structure (Level 0 → Level 1 → …), discoverable exits, persistent run state
