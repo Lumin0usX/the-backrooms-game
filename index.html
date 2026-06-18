@@ -31,6 +31,31 @@ body{cursor:none}
 #cmdres .ok{color:#9bd070}
 #cmdres .err{color:#d05050}
 #cmdres .key{color:#f4d472}
+#flhud{position:fixed;left:14px;bottom:14px;font-family:Consolas,monospace;color:#d8b248;font-size:11px;letter-spacing:0.16em;pointer-events:none;text-shadow:0 0 4px #000;z-index:7;opacity:0.92}
+#flhud .lab{display:block;margin-bottom:3px;color:#a08740}
+#flhud .bb{width:148px;height:8px;background:rgba(0,0,0,0.6);border:1px solid #5a4520;position:relative}
+#flhud .bf{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(to right,#f4d472,#d09030);transition:width 0.25s}
+#flhud .ct{margin-top:5px;color:#cf9530;font-size:12px}
+#invpanel{position:fixed;inset:0;background:rgba(10,7,2,0.92);display:none;align-items:center;justify-content:center;font-family:Consolas,monospace;z-index:10;cursor:default}
+#invpanel.show{display:flex}
+.iframe{background:rgba(20,14,4,0.96);border:2px solid #7a5e20;padding:28px 36px;width:90%;max-width:680px;color:#e6cf80;text-shadow:0 0 4px #000;box-shadow:0 0 40px rgba(180,140,40,0.28)}
+.ihd{font-size:22px;letter-spacing:0.45em;text-align:center;margin-bottom:22px;color:#f4d472;text-shadow:0 0 14px rgba(244,212,114,0.4)}
+.igrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.islot{background:rgba(30,21,6,0.7);border:1px solid #4a3818;padding:14px 10px;min-height:158px;display:flex;flex-direction:column;align-items:center;text-align:center;font-size:12px;letter-spacing:0.08em;position:relative}
+.islot.got{border-color:#cf9530;background:rgba(54,38,12,0.82)}
+.islot .ic{width:56px;height:56px;border:1px solid #3a2a10;margin-bottom:8px;background:rgba(6,4,0,0.6);display:flex;align-items:center;justify-content:center;font-size:28px;color:#5a4520;font-weight:bold}
+.islot.got .ic{border-color:#f4d472;color:#f4d472;background:rgba(60,42,12,0.85);text-shadow:0 0 8px rgba(244,212,114,0.5)}
+.islot .nm{font-weight:normal;letter-spacing:0.1em;color:#cfa860;margin-bottom:2px}
+.islot.got .nm{color:#f4d472}
+.islot .st{font-size:10px;color:#666;margin-top:auto;padding-top:6px;letter-spacing:0.18em}
+.islot.got .st{color:#9bd070}
+.islot .ct{font-size:14px;color:#f4d472;margin:4px 0}
+.islot .bb{width:100%;height:7px;background:rgba(0,0,0,0.6);border:1px solid #4a3818;position:relative;margin:4px 0}
+.islot .bf{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(to right,#f4d472,#d07a30)}
+.islot .ub{margin-top:8px;background:#3a2a0c;border:1px solid #7a5e20;color:#f4d472;padding:6px 16px;font:inherit;font-size:11px;cursor:pointer;letter-spacing:0.18em;text-transform:uppercase}
+.islot .ub:hover{background:#5a4218;border-color:#cfa860}
+.islot .ub:disabled{opacity:0.28;cursor:default;background:#222}
+.iftr{margin-top:20px;text-align:center;font-size:10px;color:#7a6230;letter-spacing:0.34em}
 #start{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,#1a1408 0%,#000 80%);color:#e8d27a;z-index:50;cursor:pointer;text-align:center;padding:20px;transition:opacity 1.2s}
 #start.gone{opacity:0;pointer-events:none}
 #start h1{font-size:38px;letter-spacing:0.45em;margin:0 0 22px;font-weight:normal;color:#f0d878;text-shadow:0 0 14px rgba(160,120,30,0.45),0 0 2px #000;animation:flk 7s infinite}
@@ -54,6 +79,21 @@ body{cursor:none}
 <div id="ltitle"></div>
 <div id="cmdres"></div>
 <div id="cmdbar"><span class="cp">&gt;</span><input id="cmd" type="text" autocomplete="off" spellcheck="false" maxlength="80" /></div>
+<div id="flhud"><span class="lab">FLASHLIGHT</span><div class="bb"><div class="bf" id="flBar" style="width:100%"></div></div><div class="ct">BATTERIES x<span id="batCt">1</span></div></div>
+<div id="invpanel">
+  <div class="iframe">
+    <div class="ihd">INVENTORY</div>
+    <div class="igrid">
+      <div class="islot" id="slA"><div class="ic">A</div><div class="nm">Almond Water</div><div class="st">NOT FOUND</div></div>
+      <div class="islot" id="slB"><div class="ic">B</div><div class="nm">Old Battery</div><div class="st">NOT FOUND</div></div>
+      <div class="islot" id="slC"><div class="ic">C</div><div class="nm">Brass Key</div><div class="st">NOT FOUND</div></div>
+      <div class="islot got" id="slBat"><div class="ic">+</div><div class="nm">Spare Batteries</div><div class="ct">x<span id="batCt2">1</span></div><button class="ub" id="useBatBtn">USE</button></div>
+      <div class="islot got" id="slFl"><div class="ic">F</div><div class="nm">Flashlight</div><div class="bb"><div class="bf" id="flBar2" style="width:100%"></div></div><div class="st" id="flStat">100%</div></div>
+      <div class="islot" id="slEx"><div class="ic">?</div><div class="nm">Empty</div><div class="st">&mdash;</div></div>
+    </div>
+    <div class="iftr">I or ESC to close</div>
+  </div>
+</div>
 <div id="start">
   <h1>THE BACKROOMS</h1>
   <p>You shouldn't be here.<br>The hum is louder than you remember.<br>The carpet is always damp.</p>
@@ -79,6 +119,16 @@ const ltitleEl=document.getElementById('ltitle');
 const cmdbarEl=document.getElementById('cmdbar');
 const cmdEl=document.getElementById('cmd');
 const cmdresEl=document.getElementById('cmdres');
+const flBarEl=document.getElementById('flBar');
+const flBar2El=document.getElementById('flBar2');
+const flStatEl=document.getElementById('flStat');
+const batCtEl=document.getElementById('batCt');
+const batCt2El=document.getElementById('batCt2');
+const invpanelEl=document.getElementById('invpanel');
+const slAEl=document.getElementById('slA');
+const slBEl=document.getElementById('slB');
+const slCEl=document.getElementById('slC');
+const useBatBtn=document.getElementById('useBatBtn');
 const grainC=document.getElementById('grain');
 const grainCtx=grainC.getContext('2d');
 function resize(){grainC.width=Math.min(window.innerWidth,1600);grainC.height=Math.min(window.innerHeight,1000)}
@@ -223,8 +273,32 @@ function makePoolCeiling(){
   }
   return t;
 }
+function makePoolDry(){
+  const t=newTex();
+  for(let y=0;y<TS;y++)for(let x=0;x<TS;x++){
+    let r=192,g=182,b=128;
+    const n=(vn(x*0.32,y*0.32,151)-0.5)*22;
+    const n2=(vn(x*1.1,y*1.1,159)-0.5)*10;
+    r+=n+n2; g+=n+n2; b+=(n+n2)*0.82;
+    // 16x16 tile grid
+    const gx=Math.min(x%16,15-(x%16));
+    const gy=Math.min(y%16,15-(y%16));
+    if(gx<1){r-=48;g-=44;b-=32}
+    if(gy<1){r-=48;g-=44;b-=32}
+    // worn patches
+    const w=fbm(x*0.05,y*0.05,163);
+    if(w>0.62){const k=(w-0.62)*4;r-=k*26;g-=k*20;b-=k*8}
+    // wet streaks (occasional)
+    const ws=fbm(x*0.10,y*0.10,171);
+    if(ws>0.70){r-=18;g-=12;b-=2}
+    if(h2(x,y,7)>0.985){r-=22;g-=18;b-=8}
+    t[y*TS+x]=rgb(r,g,b);
+  }
+  return t;
+}
 const TEX_PW=makePoolWall();
 const TEX_PF=makePoolFloor();
+const TEX_PD=makePoolDry();
 const TEX_PC=makePoolCeiling();
 
 // ============ Levels ============
@@ -234,11 +308,11 @@ const LEVELS=[
     fogR:5, fogG:4, fogB:1, fogRate:0.058,
     lightR:1.0, lightG:0.93, lightB:0.58, lightI:8.0, lightProb:0.38,
     ripple:false, moveScale:1.0 },
-  { name:'THE POOLS', wallTex:TEX_PW, floorTex:TEX_PF, ceilTex:TEX_PC,
-    ambR:0.06, ambG:0.09, ambB:0.10,
-    fogR:5, fogG:9, fogB:11, fogRate:0.038,
-    lightR:0.78, lightG:0.92, lightB:1.0, lightI:6.0, lightProb:0.30,
-    ripple:true, moveScale:0.72 }
+  { name:'THE POOLS', wallTex:TEX_PW, floorTex:TEX_PD, waterTex:TEX_PF, ceilTex:TEX_PC,
+    ambR:0.06, ambG:0.085, ambB:0.075,
+    fogR:6, fogG:8, fogB:7, fogRate:0.040,
+    lightR:0.86, lightG:0.96, lightB:0.92, lightI:6.5, lightProb:0.32,
+    ripple:true, moveScale:0.88 }
 ];
 let LEVEL=0;
 let LV=LEVELS[0];
@@ -248,14 +322,18 @@ let levelTime=0;
 const player={x:1.5,y:1.5,angle:0,bobT:0,bobOff:0};
 let inventory={a:false,b:false,c:false};
 let doorUsed=false;
+let batteries=1;
+let batteryCharge=1.0;
 try{
   const s=JSON.parse(localStorage.getItem('br_save')||'null');
   if(s&&isFinite(s.x)){player.x=s.x;player.y=s.y;player.angle=s.a}
   if(s&&typeof s.lvl==='number'){LEVEL=s.lvl|0;LV=LEVELS[LEVEL]||LEVELS[0]}
   if(s&&s.inv){inventory.a=!!s.inv.a;inventory.b=!!s.inv.b;inventory.c=!!s.inv.c}
   if(s&&s.dr){doorUsed=true}
+  if(s&&typeof s.bt==='number') batteries=Math.max(0,s.bt|0);
+  if(s&&typeof s.bc==='number') batteryCharge=Math.max(0,Math.min(1,+s.bc));
 }catch(e){}
-function saveState(){try{localStorage.setItem('br_save',JSON.stringify({x:player.x,y:player.y,a:player.angle,lvl:LEVEL,inv:inventory,dr:doorUsed}))}catch(e){}}
+function saveState(){try{localStorage.setItem('br_save',JSON.stringify({x:player.x,y:player.y,a:player.angle,lvl:LEVEL,inv:inventory,dr:doorUsed,bt:batteries,bc:+batteryCharge.toFixed(3)}))}catch(e){}}
 setInterval(saveState,3500);
 
 // ============ World / chunks ============
@@ -328,12 +406,38 @@ function isPoolWall(gx,gy){
   return 0;
 }
 function isWallGen(gx,gy){ return LEVEL===0 ? isMazeWall(gx,gy) : isPoolWall(gx,gy); }
+// Pools: 0=dry walkway, 1=water (per global tile)
+function poolFloorType(gx, gy){
+  const cx=Math.floor(gx/PROOM), cy=Math.floor(gy/PROOM);
+  const lx=gx-cx*PROOM, ly=gy-cy*PROOM;
+  const v=h2(cx, cy, SEED+501);
+  if(v<0.18) return 0; // fully dry maintenance/corridor room
+  if(v>0.84) return 1; // fully flooded
+  if(v<0.50){
+    // half/half split, with a 1-tile dry "lip" along the seam
+    const orient=h2(cx, cy, SEED+503);
+    const split=7+((h2(cx, cy, SEED+505)*3)|0);
+    if(orient<0.5){
+      if(lx===split) return 0; // dry edge
+      return lx<split ? 0 : 1;
+    } else {
+      if(ly===split) return 0; // dry edge
+      return ly<split ? 0 : 1;
+    }
+  }
+  // central pool with walkway perimeter (varying ring width)
+  const ringW=2+((h2(cx, cy, SEED+507)*2)|0);
+  if(lx<ringW || lx>=PROOM-ringW || ly<ringW || ly>=PROOM-ringW) return 0;
+  return 1;
+}
 function genChunk(cx,cy){
   const tiles=new Uint8Array(CHUNK*CHUNK);
+  const floorType=new Uint8Array(CHUNK*CHUNK);
   const lights=[];
   for(let ly=0;ly<CHUNK;ly++)for(let lx=0;lx<CHUNK;lx++){
     const gx=cx*CHUNK+lx, gy=cy*CHUNK+ly;
     tiles[ly*CHUNK+lx]=isWallGen(gx,gy);
+    if(LEVEL===1) floorType[ly*CHUNK+lx]=poolFloorType(gx,gy);
   }
   if(cx===0&&cy===0){
     if(LEVEL===0){
@@ -352,7 +456,17 @@ function genChunk(cx,cy){
       // Open small chamber around item C
       for(let dy=11;dy<=13;dy++)for(let dx=11;dx<=13;dx++) tiles[dy*CHUNK+dx]=0;
     } else {
-      // Pools: leave isPoolWall layout intact — spawn at (8.5, 8.5) is between pillars
+      // Pools: shape spawn room so player starts on dry walkway, pool visible ahead
+      for(let ly=0;ly<CHUNK;ly++)for(let lx=0;lx<CHUNK;lx++){
+        if(tiles[ly*CHUNK+lx]!==0) continue;
+        const dx=lx-8, dy=ly-8;
+        const distMax=Math.max(Math.abs(dx),Math.abs(dy));
+        // dry under feet within 2-tile radius
+        if(distMax<=2) floorType[ly*CHUNK+lx]=0;
+        // pool occupies south-east quadrant
+        else if(lx>=8 && ly>=8) floorType[ly*CHUNK+lx]=1;
+        else floorType[ly*CHUNK+lx]=0;
+      }
     }
   }
   if(LEVEL===0){
@@ -412,7 +526,7 @@ function genChunk(cx,cy){
       }
     }
   }
-  return {tiles,lights,touched:performance.now()};
+  return {tiles,floorType,lights,touched:performance.now()};
 }
 function getChunk(cx,cy){
   const k=ckey(cx,cy);
@@ -445,6 +559,13 @@ function isWall(mx,my){
   if(cx!==_wccx||cy!==_wccy){_wcc=getChunk(cx,cy);_wccx=cx;_wccy=cy}
   const lx=mx-cx*CHUNK, ly=my-cy*CHUNK;
   return _wcc.tiles[ly*CHUNK+lx]===1;
+}
+let _fcc=null,_fccx=1e9,_fccy=1e9;
+function floorTypeAt(mx,my){
+  const cx=mx>>4, cy=my>>4;
+  if(cx!==_fccx||cy!==_fccy){_fcc=getChunk(cx,cy);_fccx=cx;_fccy=cy}
+  if(!_fcc.floorType) return 0;
+  return _fcc.floorType[(my-(cy<<4))*CHUNK + (mx-(cx<<4))];
 }
 // Make sure player isn't stuck inside a wall from old save
 if(isWall(Math.floor(player.x), Math.floor(player.y))){
@@ -486,17 +607,19 @@ function sampleLightAt(wx,wy){
     const att=(L.intensity*L.flick)/d2;
     r+=att*L.r;g+=att*L.g;b+=att*L.b;
   }
-  if(flashlight){
+  if(flashlight && batteryCharge>0){
     const dx=wx-player.x,dy=wy-player.y;
     const d2=dx*dx+dy*dy;
-    if(d2<196){
+    if(d2<64){
       const d=Math.sqrt(d2);
       if(d>0.05){
         const dot=(dx*_flDirX+dy*_flDirY)/d;
-        if(dot>0.55){
-          const cone=(dot-0.55)*1.818;
-          const att=6.5/(d2+0.5)*cone;
-          r+=att;g+=att*0.94;b+=att*0.66;
+        if(dot>0.88){
+          const cone=(dot-0.88)*8.33;
+          const sharp=cone*cone;
+          const fade=batteryCharge<0.25?batteryCharge*4:1;
+          const att=3.2/(d2+0.7)*sharp*fade;
+          r+=att;g+=att*0.92;b+=att*0.62;
         }
       }
     }
@@ -515,17 +638,19 @@ function sample3(wx,wy){
     const att=(L.intensity*L.flick)/d2;
     r+=att*L.r;g+=att*L.g;b+=att*L.b;
   }
-  if(flashlight){
+  if(flashlight && batteryCharge>0){
     const dx=wx-player.x,dy=wy-player.y;
     const d2=dx*dx+dy*dy;
-    if(d2<196){
+    if(d2<64){
       const d=Math.sqrt(d2);
       if(d>0.05){
         const dot=(dx*_flDirX+dy*_flDirY)/d;
-        if(dot>0.55){
-          const cone=(dot-0.55)*1.818;
-          const att=6.5/(d2+0.5)*cone;
-          r+=att;g+=att*0.94;b+=att*0.66;
+        if(dot>0.88){
+          const cone=(dot-0.88)*8.33;
+          const sharp=cone*cone;
+          const fade=batteryCharge<0.25?batteryCharge*4:1;
+          const att=3.2/(d2+0.7)*sharp*fade;
+          r+=att;g+=att*0.92;b+=att*0.62;
         }
       }
     }
@@ -567,7 +692,9 @@ function castFrame(){
     const stepY=rowDist*(rayDY1-rayDY0)/W;
     let fx=player.x+rowDist*rayDX0;
     let fy=player.y+rowDist*rayDY0;
-    const tex=isFloor?LV.floorTex:LV.ceilTex;
+    const dryTex=isFloor?LV.floorTex:LV.ceilTex;
+    const waterTex=isFloor?(LV.waterTex||dryTex):dryTex;
+    const hasWater = isFloor && !!LV.waterTex;
     const rowOff=y*W;
     const STRIDE=16;
     const nSamples=(W>>4)+1;
@@ -592,7 +719,12 @@ function castFrame(){
     for(let x=0;x<W;x++){
       const tx=((fx*TS)|0)&TM;
       const ty=((fy*TS)|0)&TM;
-      const c=tex[ty*TS+tx];
+      let curTex=dryTex;
+      if(hasWater){
+        const ft=floorTypeAt(fx|0, fy|0);
+        if(ft===1) curTex=waterTex;
+      }
+      const c=curTex[ty*TS+tx];
       let r=(c&0xff)*cR;
       let g=((c>>8)&0xff)*cG;
       let b=((c>>16)&0xff)*cB;
@@ -738,16 +870,61 @@ function invCount(){return (inventory.a?1:0)+(inventory.b?1:0)+(inventory.c?1:0)
 function updateInvHUD(){
   if(LEVEL!==0){
     iAEl.parentElement.style.opacity=0;
-    return;
+  } else {
+    iAEl.parentElement.style.opacity='';
+    iAEl.className='it'+(inventory.a?' got':'');
+    iBEl.className='it'+(inventory.b?' got':'');
+    iCEl.className='it'+(inventory.c?' got':'');
+    iAEl.textContent=(inventory.a?'[x]':'[ ]')+' Almond Water';
+    iBEl.textContent=(inventory.b?'[x]':'[ ]')+' Battery';
+    iCEl.textContent=(inventory.c?'[x]':'[ ]')+' Key';
   }
-  iAEl.parentElement.style.opacity='';
-  iAEl.className='it'+(inventory.a?' got':'');
-  iBEl.className='it'+(inventory.b?' got':'');
-  iCEl.className='it'+(inventory.c?' got':'');
-  iAEl.textContent=(inventory.a?'[x]':'[ ]')+' Almond Water';
-  iBEl.textContent=(inventory.b?'[x]':'[ ]')+' Battery';
-  iCEl.textContent=(inventory.c?'[x]':'[ ]')+' Key';
+  // Inventory panel slot states
+  slAEl.className='islot'+(inventory.a?' got':'');
+  slBEl.className='islot'+(inventory.b?' got':'');
+  slCEl.className='islot'+(inventory.c?' got':'');
+  slAEl.querySelector('.st').textContent = inventory.a?'COLLECTED':'NOT FOUND';
+  slBEl.querySelector('.st').textContent = inventory.b?'COLLECTED':'NOT FOUND';
+  slCEl.querySelector('.st').textContent = inventory.c?'COLLECTED':'NOT FOUND';
+  batCtEl.textContent=batteries;
+  batCt2El.textContent=batteries;
+  useBatBtn.disabled = batteries<=0 || batteryCharge>=0.999;
+  updateFlBarHUD();
 }
+function updateFlBarHUD(){
+  const pct=Math.round(batteryCharge*100);
+  flBarEl.style.width = pct+'%';
+  flBar2El.style.width = pct+'%';
+  flStatEl.textContent = pct+'%';
+  flBarEl.style.background = batteryCharge<0.25 ? '#d04030' : 'linear-gradient(to right,#f4d472,#d09030)';
+  flBar2El.style.background = batteryCharge<0.25 ? '#d04030' : 'linear-gradient(to right,#f4d472,#d09030)';
+}
+let invOpen=false;
+function openInv(){
+  if(invOpen) return;
+  invOpen=true;
+  updateInvHUD();
+  invpanelEl.classList.add('show');
+  if(document.pointerLockElement) document.exitPointerLock?.();
+  for(const k in keys) keys[k]=0;
+}
+function closeInv(){
+  if(!invOpen) return;
+  invOpen=false;
+  invpanelEl.classList.remove('show');
+  if(started) view.requestPointerLock?.();
+}
+function useBattery(){
+  if(batteries<=0){ showSub('no spare batteries', 1.8); return; }
+  if(batteryCharge>=0.999){ showSub('flashlight already full', 1.8); return; }
+  batteries--;
+  batteryCharge=1.0;
+  if(typeof ac!=='undefined' && ac){ tone(880,0.10,0.10,'sine'); tone(1320,0.14,0.06,'triangle'); }
+  showSub('battery installed (x'+batteries+' left)', 2.4);
+  updateInvHUD();
+  saveState();
+}
+useBatBtn.addEventListener('click', useBattery);
 updateInvHUD();
 let _doorMsgAt=0;
 function checkPickupsAndDoor(now){
@@ -801,7 +978,7 @@ function tickTransition(dt){
     player.bobT=0; player.bobOff=0;
     chunks.clear(); chunkOrder.length=0;
     activeLights.length=0;
-    _wccx=1e9; _wccy=1e9;
+    _wccx=1e9; _wccy=1e9; _fccx=1e9; _fccy=1e9;
     const pcx=Math.floor(player.x/CHUNK), pcy=Math.floor(player.y/CHUNK);
     for(let dx=-4;dx<=4;dx++) for(let dy=-4;dy<=4;dy++) getChunk(pcx+dx,pcy+dy);
     if(isWall(Math.floor(player.x), Math.floor(player.y))){
@@ -1272,16 +1449,30 @@ function distantThump(){
 const keys={};
 let mouseDX=0;
 addEventListener('keydown',e=>{
+  if(invOpen){
+    if(e.code==='KeyI'||e.code==='Escape'){e.preventDefault(); closeInv()}
+    else if(e.code==='KeyU'||e.code==='Enter'){e.preventDefault(); useBattery()}
+    return;
+  }
   if(e.code==='Slash' && !cmdOpen && started){
     e.preventDefault();
     openCmd();
     return;
   }
   if(cmdOpen) return;
+  if(e.code==='KeyI' && started){e.preventDefault(); openInv(); return}
   keys[e.code]=1;
-  if(e.code==='KeyF'){flashlight=!flashlight; tone(flashlight?900:300,0.06,0.04,'square')}
+  if(e.code==='KeyF'){
+    if(batteryCharge<=0 && !flashlight){
+      showSub('battery dead — open inventory (I) to USE a battery', 2.6);
+      tone(180,0.10,0.06,'square');
+    } else {
+      flashlight=!flashlight;
+      tone(flashlight?900:300,0.06,0.04,'square');
+    }
+  }
 });
-addEventListener('keyup',e=>{ if(cmdOpen) return; keys[e.code]=0 });
+addEventListener('keyup',e=>{ if(cmdOpen||invOpen) return; keys[e.code]=0 });
 let pointerLocked=false;
 let started=false;
 function tryLock(){
@@ -1597,7 +1788,8 @@ function updateMovement(dt,now){
   if(lA) player.angle -= 1.7*dt;
   if(rA) player.angle += 1.7*dt;
   const len=Math.sqrt(mx*mx+my*my);
-  const speed=2.6*LV.moveScale*speedMult;
+  const onWater = LEVEL===1 && floorTypeAt(player.x|0, player.y|0)===1;
+  const speed=2.6*LV.moveScale*speedMult*(onWater?0.66:1);
   const moving=len>0.01;
   if(moving){
     mx/=len; my/=len;
@@ -1613,6 +1805,15 @@ function updateMovement(dt,now){
   // head bob translates to slight vertical offset
   const target = moving ? Math.sin(player.bobT)*0.8 : 0;
   player.bobOff += (target - player.bobOff)*0.18;
+  // Battery drain
+  if(flashlight && batteryCharge>0){
+    batteryCharge -= dt*0.0083; // ~120s per full battery
+    if(batteryCharge<=0){
+      batteryCharge=0;
+      if(flashlight){flashlight=false; showSub('flashlight out — battery dead', 2.8); tone(220,0.20,0.10,'square')}
+    }
+    updateFlBarHUD();
+  }
   checkPickupsAndDoor(now);
 }
 
