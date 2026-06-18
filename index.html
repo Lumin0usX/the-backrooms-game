@@ -403,40 +403,10 @@ const stats={
   tilesWalked:0, waterTiles:0, playTime:0, eventCount:0,
   poolsDarkTime:0, maxBatteries:1, maxDist:0
 };
-try{
-  const s=JSON.parse(localStorage.getItem('br_save')||'null');
-  if(s&&isFinite(s.x)){player.x=s.x;player.y=s.y;player.angle=s.a}
-  if(s&&typeof s.lvl==='number'){LEVEL=s.lvl|0;LV=LEVELS[LEVEL]||LEVELS[0]}
-  if(s&&s.inv){inventory.a=!!s.inv.a;inventory.b=!!s.inv.b;inventory.c=!!s.inv.c}
-  if(s&&s.dr){doorUsed=true}
-  if(s&&typeof s.bt==='number') batteries=Math.max(0,s.bt|0);
-  if(s&&typeof s.bc==='number') batteryCharge=Math.max(0,Math.min(1,+s.bc));
-  if(s&&s.ach) for(const k in s.ach) achievements[k]=s.ach[k]?1:0;
-  if(s&&s.st){
-    stats.tilesWalked=+s.st.tw||0;
-    stats.waterTiles=+s.st.wt||0;
-    stats.playTime=+s.st.pt||0;
-    stats.eventCount=s.st.ec|0;
-    stats.poolsDarkTime=+s.st.pd||0;
-    stats.maxBatteries=s.st.mb|0||1;
-    stats.maxDist=+s.st.md||0;
-  }
-  if(s&&Array.isArray(s.cb)) for(const k of s.cb) collectedBats.add(k);
-}catch(e){}
-function saveState(){
-  try{
-    const cb=[];
-    let n=0; for(const k of collectedBats){ cb.push(k); if(++n>=600) break; }
-    localStorage.setItem('br_save',JSON.stringify({
-      x:player.x,y:player.y,a:player.angle,lvl:LEVEL,inv:inventory,dr:doorUsed,
-      bt:batteries,bc:+batteryCharge.toFixed(3),
-      ach:achievements,
-      st:{tw:+stats.tilesWalked.toFixed(0),wt:+stats.waterTiles.toFixed(0),pt:+stats.playTime.toFixed(0),ec:stats.eventCount,pd:+stats.poolsDarkTime.toFixed(0),mb:stats.maxBatteries,md:+stats.maxDist.toFixed(0)},
-      cb
-    }))
-  }catch(e){}
-}
-setInterval(saveState,3500);
+// No auto-save. Fresh state every page load. The only way to resume is to paste a save code (K panel).
+// Clear any old persisted save so the game truly starts from default.
+try{ localStorage.removeItem('br_save') }catch(e){}
+function saveState(){ /* intentionally no-op — progress is only preserved through save codes */ }
 
 // ============ World / chunks ============
 const CHUNK=16;
@@ -1724,7 +1694,7 @@ function execCmd(raw){
     }
     case 'reset': case 'wipe': {
       try{localStorage.removeItem('br_save')}catch(e){}
-      cmdSay('save wiped — reloading...');
+      cmdSay('reloading to default...');
       setTimeout(()=>location.reload(), 500);
       break;
     }
