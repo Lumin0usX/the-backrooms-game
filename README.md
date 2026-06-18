@@ -9,7 +9,9 @@
 
 A psychological-horror Backrooms game in a single self-contained HTML file. No dependencies, no assets — everything (textures, audio, world) is generated procedurally at runtime.
 
-**[Play in browser](./index.html)** — just open `index.html` in any modern browser.
+**[▶ Play online](https://lumin0usx.github.io/the-backrooms-game/)** — runs straight in the browser, no install.
+
+Or download and open `index.html` locally in any modern browser.
 
 ## Engine
 
