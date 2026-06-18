@@ -1637,6 +1637,7 @@ function execCmd(raw){
         '<span class="key">/light N</span>     set ambient (0.0–1.0)',
         '<span class="key">/fog N</span>       set fog rate (0.01–0.2)',
         '<span class="key">/where</span>       print position',
+        '<span class="key">/ach &lt;id|name|all|clear|list&gt;</span>  grant / list achievements',
         '<span class="key">/reset</span>       wipe save and reload',
         '<span class="key">/help</span>        this list'
       ].join('<br>'));
@@ -1725,6 +1726,49 @@ function execCmd(raw){
       try{localStorage.removeItem('br_save')}catch(e){}
       cmdSay('save wiped — reloading...');
       setTimeout(()=>location.reload(), 500);
+      break;
+    }
+    case 'ach': case 'achievement': case 'achievements': {
+      if(!arg || arg==='list' || arg==='ls'){
+        const lines=['<span class="key">/ach &lt;id&gt;</span>  unlock by id (0-9)','<span class="key">/ach all</span>     unlock every achievement','<span class="key">/ach clear</span>   lock all','<span class="key">/ach open</span>    open the achievements panel',''];
+        for(let i=0;i<ACHIEVEMENTS.length;i++){
+          const A=ACHIEVEMENTS[i];
+          const mark=achievements[i]?'<span class="ok">[x]</span>':'<span class="err">[ ]</span>';
+          lines.push(mark+' <span class="key">'+i+'</span> '+A.name+' — '+A.desc);
+        }
+        cmdSay(lines.join('<br>'));
+        break;
+      }
+      if(arg==='all' || arg==='*'){
+        let added=0;
+        for(let i=0;i<ACHIEVEMENTS.length;i++) if(!achievements[i]){ unlockAch(i); added++; }
+        cmdSay(added>0?'unlocked '+added+' achievement(s)':'already 100% — nothing to grant');
+        break;
+      }
+      if(arg==='clear' || arg==='reset' || arg==='lock'){
+        for(let i=0;i<ACHIEVEMENTS.length;i++) achievements[i]=0;
+        rebuildAchPanel(); saveState();
+        cmdSay('all achievements locked');
+        break;
+      }
+      if(arg==='open' || arg==='show' || arg==='panel'){
+        closeCmd(); openAchPanel(); cmdSay('opening panel...');
+        break;
+      }
+      // Allow name or id
+      let idx=-1;
+      const n=parseInt(arg,10);
+      if(!isNaN(n) && n>=0 && n<ACHIEVEMENTS.length) idx=n;
+      else {
+        const q=arg.toLowerCase();
+        for(let i=0;i<ACHIEVEMENTS.length;i++){
+          if(ACHIEVEMENTS[i].name.toLowerCase().replace(/\s+/g,'').startsWith(q.replace(/\s+/g,''))){idx=i;break}
+        }
+      }
+      if(idx<0){ cmdSay('ach: unknown id/name "'+arg+'"  (try /ach list)','err'); break; }
+      if(achievements[idx]){ cmdSay('already unlocked: '+ACHIEVEMENTS[idx].name); break; }
+      unlockAch(idx);
+      cmdSay('unlocked: '+ACHIEVEMENTS[idx].name);
       break;
     }
     default:
