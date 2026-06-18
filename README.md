@@ -53,3 +53,7 @@ Planned for future releases:
 
 - **Inventory & Resource Management** — pickup-able items, flashlight battery, sanity / stamina meters
 - **Progression System** — objectives, multi-level structure (Level 0 → Level 1 → …), discoverable exits, persistent run state
+
+## License
+
+[MIT](./LICENSE) &copy; 2026 Lumin0usX
